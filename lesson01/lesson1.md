@@ -8,9 +8,9 @@
 -undo
 -redo
 -checkpoings
-**MVCC** - Multiversion  Concurrence Control
+**MVCC** - Multiversion Concurrence Control
 
-**pg_lsclusters** - запущенные экземпляры 
+**pg_lsclusters** - запущенные экземпляры
 
 ### Уровни изоляции
 
@@ -21,7 +21,6 @@
 ***repeateble read(фантомное чтение)*** - разные наборы строк при перечитывании данных транзакции (не в PG)
 
 ***serializeble (аномалия сериализации)*** - добавление строк выстраивается в последовательность. при конфликтах последняя транзакция роллбечится
-
 
 ```
 \echo :AUTOCOMMIT - сессионный параметр AUTOCOMMIT
