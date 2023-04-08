@@ -2,13 +2,13 @@
 
 
 ++windows termanal
-**ACID** - Atomic, Consistency, Isolation,Durabality
-**ARIES** - Algoritms of Recovery and Isolation Exploting Semantics
+> **ACID** - Atomic, Consistency, Isolation,Durabality
+> **ARIES** - Algoritms of Recovery and Isolation Exploting Semantics
 -logging
 -undo
 -redo
 -checkpoings
-**MVCC** - Multiversion Concurrence Control
+> **MVCC** - Multiversion Concurrence Control
 
 **pg_lsclusters** - запущенные экземпляры
 
