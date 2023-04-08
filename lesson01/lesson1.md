@@ -8,7 +8,7 @@
 -undo
 -redo
 -checkpoings
-**MVCC** - Multiversion Concurrence Control
+**MVCC** - Multiversion  Concurrence Control
 
 **pg_lsclusters** - запущенные экземпляры 
 
