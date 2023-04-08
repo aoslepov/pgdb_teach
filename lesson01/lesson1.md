@@ -2,8 +2,8 @@
 
 
 ++windows termanal
-> **ACID** - Atomic, Consistency, Isolation,Durabality
-> **ARIES** - Algoritms of Recovery and Isolation Exploting Semantics
+**ACID** - Atomic, Consistency, Isolation,Durabality
+**ARIES** - Algoritms of Recovery and Isolation Exploting Semantics
 -logging
 -undo
 -redo
