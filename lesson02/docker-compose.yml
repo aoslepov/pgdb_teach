@@ -1,0 +1,19 @@
+services:
+  postgres:
+    container_name: pg-server
+    hostname: pg-server
+    image: postgres:15.2
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: testuser
+    volumes:
+       - /var/lib/postgresql:/var/lib/postgres/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - 'pg-net'
+
+networks:
+  pg-net:
+    driver: bridge
