@@ -7,10 +7,10 @@
 переносить содержимое базы данных PostgreSQL на дополнительный диск
 переносить содержимое БД PostgreSQL между виртуальными машинами*
 
-> создайте виртуальную машину c Ubuntu 20.04/22.04 LTS в GCE/ЯО/Virtual Box/докере
-> поставьте на нее PostgreSQL 15 через sudo apt
-> проверьте что кластер запущен через sudo -u postgres pg_lsclusters
-> зайдите из под пользователя postgres в psql и сделайте произвольную таблицу с произвольным содержимым
+> Создайте виртуальную машину c Ubuntu 20.04/22.04 LTS в GCE/ЯО/Virtual Box/докере
+> Поставьте на нее PostgreSQL 15 через sudo apt
+> Проверьте что кластер запущен через sudo -u postgres pg_lsclusters
+> Зайдите из под пользователя postgres в psql и сделайте произвольную таблицу с произвольным содержимым
 > postgres=# create table test(c1 text);
 > postgres=# insert into test values('1');
 > \q
@@ -30,8 +30,6 @@ Ver Cluster Port Status Owner    Data directory              Log file
 
 --- добавляем тестовые данные
 sudo -u postgres psql
-psql (15.2 (Ubuntu 15.2-1.pgdg22.04+1))
-Type "help" for help.
 
 postgres=# create table test(c1 text);
 CREATE TABLE
@@ -44,13 +42,13 @@ postgres=# \dt
  public | test    | table | postgres
 ```
 
-> остановите postgres например через sudo -u postgres pg_ctlcluster 15 main stop
-> создайте новый диск к ВМ размером 10GB
-> добавьте свеже-созданный диск к виртуальной машине - надо зайти в режим ее редактирования и дальше выбрать пункт attach existing disk
-> проинициализируйте диск согласно инструкции и подмонтировать файловую систему, только не забывайте менять имя диска на актуальное, в вашем случае это скорее всего будет /dev/sdb - https://www.digitalocean.com/community/tutorials/how-to-partition-and-format-storage-devices-in-linux
-> перезагрузите инстанс и убедитесь, что диск остается примонтированным (если не так смотрим в сторону fstab)
-> сделайте пользователя postgres владельцем /mnt/data - chown -R postgres:postgres /mnt/data/
-> перенесите содержимое /var/lib/postgres/14 в /mnt/data - mv /var/lib/postgresql/15/mnt/data
+> Остановите postgres например через sudo -u postgres pg_ctlcluster 15 main stop
+> Создайте новый диск к ВМ размером 10GB
+> Добавьте свеже-созданный диск к виртуальной машине - надо зайти в режим ее редактирования и дальше выбрать пункт attach existing disk
+> Проинициализируйте диск согласно инструкции и подмонтировать файловую систему, только не забывайте менять имя диска на актуальное, в вашем случае это скорее всего будет /dev/sdb - https://www.digitalocean.com/community/tutorials/how-to-partition-and-format-storage-devices-in-linux
+> Перезагрузите инстанс и убедитесь, что диск остается примонтированным (если не так смотрим в сторону fstab)
+> Сделайте пользователя postgres владельцем /mnt/data - chown -R postgres:postgres /mnt/data/
+> Перенесите содержимое /var/lib/postgres/14 в /mnt/data - mv /var/lib/postgresql/15/mnt/data
 
 ```
 --- заказываем диск размером 10GB
@@ -139,31 +137,28 @@ tmpfs           5.0M     0  5.0M   0% /run/lock
 tmpfs           393M  4.0K  393M   1% /run/user/1000
 /dev/vdb1        10G  104M  9.9G   2% /mnt/data
 
---- переносим данные
+--- переносим данные на дополнительный диск
 mv /var/lib/postgresql /mnt/data/
 ```
 
-
-> попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
-> напишите получилось или нет и почему
-> задание: найти конфигурационный параметр в файлах раположенных в /etc/postgresql/15/main который надо поменять и поменяйте его
-> напишите что и почему поменяли
-> попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
-> напишите получилось или нет и почему
-> зайдите через через psql и проверьте содержимое ранее созданной таблицы
+> Попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
+> Напишите получилось или нет и почему
+> Задание: найти конфигурационный параметр в файлах раположенных в /etc/postgresql/15/main который надо поменять и поменяйте его
+> Напишите что и почему поменяли
+> Попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
+> Напишите получилось или нет и почему
+> Зайдите через через psql и проверьте содержимое ранее созданной таблицы
 ```
 
 --- кластер не запустится - нет каталога с данными
 sudo -u postgres pg_ctlcluster 15 main start
 Error: /var/lib/postgresql/15/main is not accessible or does not exist
 
---- меняем каталог с данными на новый в /etc/postgresql/15/main/postgresql.conf
+--- в /etc/postgresql/15/main/postgresql.conf меняем параметр data_directory на каталог с данными
 data_directory = '/mnt/data/postgresql/15/main' 
 
 --- запускаем постгрес, проверяем что кластер запустился и тестовые данные на месте
 sudo -u postgres pg_ctlcluster 15 main start
-Warning: the cluster will not be running as a systemd service. Consider using systemctl:
-  sudo systemctl start postgresql@15-main
 
 sudo -u postgres pg_lsclusters
 Ver Cluster Port Status Owner    Data directory               Log file
@@ -178,9 +173,6 @@ tail -f /var/log/postgresql/postgresql-15-main.log
 2023-04-22 13:52:45.605 UTC [2488] LOG:  database system is ready to accept connections
 
 su -u postgres psql
-psql (15.2 (Ubuntu 15.2-1.pgdg22.04+1))
-Type "help" for help.
-
 postgres=# select * from test;
  c1
 ----
@@ -189,20 +181,21 @@ postgres=# select * from test;
 ```
 
 
-> задание со звездочкой *: не удаляя существующий инстанс ВМ сделайте новый, поставьте на его PostgreSQL, удалите файлы с данными из /var/lib/postgres, перемонтируйте внешний диск который сделали ранее от первой виртуальной машины ко второй и запустите PostgreSQL на второй машине так чтобы он работал с данными на внешнем диске, расскажите как вы это сделали и что в итоге получилось.
+> Задание со звездочкой *: не удаляя существующий инстанс ВМ сделайте новый, поставьте на его PostgreSQL, удалите файлы с данными из /var/lib/postgres, перемонтируйте внешний диск который сделали ранее от первой виртуальной машины ко второй и запустите PostgreSQL на второй машине так чтобы он работал с данными на внешнем диске, расскажите как вы это сделали и что в итоге получилось.
 ```
 
 --- выключаем кластер постгрес и отмонтируем каталог с тестовыми данными на ВМ1
 sudo -u postgres pg_ctlcluster 15 main stop
 umount /mnt/data/
 
-
 --- проверяем установленную версию постгрес на ВМ1
 dpkg -l | grep postgres-15
 ii  postgresql-15                         15.2-1.pgdg22.04+1
 
 -- отмонтируем дополнительный диск от ВМ1
+
 -- заказываем новую ВМ2
+
 -- монтируем дополнительный диск к ВМ2
 
 --- ставим на ВМ2 postgres-15
@@ -213,7 +206,7 @@ sudo apt-get update
 sudo apt-get -y install postgresql-15
 
 
---- останавливаем кластер
+--- останавливаем кластер на ВМ2
 sudo -u postgres pg_ctlcluster 15 main stop
 sudo -u postgres pg_lsclusters
 Ver Cluster Port Status Owner    Data directory               Log file
@@ -238,7 +231,7 @@ Disk identifier: 28B4B440-C1C4-4794-BDE8-F8646C8535CB
 Device     Start      End  Sectors Size Type
 /dev/vdb1   2048 20969471 20967424  10G Linux filesystem
 
---- смотрим uuid диска, добавляем запись в /etc/fstab, монтируем диск
+--- смотрим uuid диска /dev/vdb1, добавляем запись в /etc/fstab, монтируем диск
 blkid
 /dev/vda2: UUID="82aeea96-6d42-49e6-85d5-9071d3c9b6aa" BLOCK_SIZE="4096" TYPE="ext4" PARTUUID="12dde951-b45e-4012-bce4-328a47213d1b"
 /dev/loop1: TYPE="squashfs"
@@ -265,7 +258,7 @@ tmpfs           393M  4.0K  393M   1% /run/user/1000
 vim /etc/postgresql/15/main/postgresql.conf
 data_directory = '/mnt/data/postgresql/15/main' 
 
---- запускаем кластер на ВМ2
+--- запускаем кластер 
 sudo -u postgres pg_ctlcluster 15 main start
   sudo systemctl start postgresql@15-main
 root@pg-teach-02:~# sudo -u postgres pg_lsclusters
@@ -273,7 +266,7 @@ Ver Cluster Port Status Owner    Data directory               Log file
 15  main    5432 online postgres /mnt/data/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
 
 
---- проверяем тестовый набор нанных
+--- проверяем тестовый набор нанных на ВМ2
 sudo -u postgres psql
 psql (15.2 (Ubuntu 15.2-1.pgdg22.04+1))
 Type "help" for help.
