@@ -65,10 +65,13 @@ Disk /dev/vdb: 10 GiB, 10737418240 bytes, 20971520 sectors
  I/O size (minimum/optimal): 8192 bytes / 8192 bytes
 
 --- ставим parted 
- pg-teach-01# sudo apt update
- pg-teach-01# sudo apt install parted
- pg-teach-01# sudo parted -l
- 
+ sudo apt update
+ sudo apt install parted
+
+
+--- диск пока не размечен
+
+ sudo parted -l
  Error: /dev/vdb: unrecognised disk label
  Model: Virtio Block Device (virtblk)
  Disk /dev/vdb: 10.7GB
@@ -76,8 +79,7 @@ Disk /dev/vdb: 10 GiB, 10737418240 bytes, 20971520 sectors
  Partition Table: unknown
  Disk Flags:
 
---- диск пока не размечен
- lsblk
+ sudo lsblk
  NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
  vda    252:0    0    15G  0 disk
  ├─vda1 252:1    0     1M  0 part
@@ -119,14 +121,15 @@ realtime =none                   extsz=4096   blocks=0, rtextents=0
 mkdir /mnt/data && chown -R postgres:postgres /mnt/data/
 
 
---- смотрим uuid диска
+--- смотрим uuid диска /dev/vdb1
 blkid
 /dev/vda2: UUID="82aeea96-6d42-49e6-85d5-9071d3c9b6aa" BLOCK_SIZE="4096" TYPE="ext4" PARTUUID="12dde951-b45e-4012-bce4-328a47213d1b"
 /dev/vdb1: UUID="b4bfd480-631d-4d5c-bd7b-1a076c36fd17" BLOCK_SIZE="512" TYPE="xfs" PARTLABEL="primary" PARTUUID="bf8b2bd4-893c-4b4e-8858-85e26e3b799e"
 /dev/vda1: PARTUUID="0597456a-4228-4f4a-b023-7a349e3b6798"
 
---- добавляем в /etc/fstab и монтируем диск
+--- добавляем в /etc/fstab запись для диска и монтируем диск
 UUID="b4bfd480-631d-4d5c-bd7b-1a076c36fd17" /mnt/data xfs defaults 0 1
+
 mount -a
 
 
@@ -146,12 +149,51 @@ mv /var/lib/postgresql /mnt/data/
 ```
 
 
-попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
-напишите получилось или нет и почему
-задание: найти конфигурационный параметр в файлах раположенных в /etc/postgresql/15/main который надо поменять и поменяйте его
-напишите что и почему поменяли
-попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
-напишите получилось или нет и почему
+> попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
+> напишите получилось или нет и почему
+> задание: найти конфигурационный параметр в файлах раположенных в /etc/postgresql/15/main который надо поменять и поменяйте его
+> напишите что и почему поменяли
+> попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
+> напишите получилось или нет и почему
+```
+
+--- кластер не запустится - нет каталога с данными
+sudo -u postgres pg_ctlcluster 15 main start
+Error: /var/lib/postgresql/15/main is not accessible or does not exist
+
+--- меняем каталог с данными на новый в /etc/postgresql/15/main/postgresql.conf
+data_directory = '/mnt/data/postgresql/15/main' 
+
+--- запускаем постгрес, проверяем что кластер запустился и тестовые данные на месте
+
+sudo -u postgres pg_ctlcluster 15 main start
+Warning: the cluster will not be running as a systemd service. Consider using systemctl:
+  sudo systemctl start postgresql@15-main
+
+sudo -u postgres pg_lsclusters
+Ver Cluster Port Status Owner    Data directory               Log file
+15  main    5432 online postgres /mnt/data/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
+
+tail -f /var/log/postgresql/postgresql-15-main.log
+2023-04-22 13:52:45.581 UTC [2488] LOG:  starting PostgreSQL 15.2 (Ubuntu 15.2-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.3.0-1ubuntu1~22.04) 11.3.0, 64-bit
+2023-04-22 13:52:45.582 UTC [2488] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2023-04-22 13:52:45.582 UTC [2488] LOG:  listening on IPv6 address "::", port 5432
+2023-04-22 13:52:45.584 UTC [2488] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2023-04-22 13:52:45.598 UTC [2491] LOG:  database system was shut down at 2023-04-22 13:28:02 UTC
+2023-04-22 13:52:45.605 UTC [2488] LOG:  database system is ready to accept connections
+
+su -u postgres psql
+psql (15.2 (Ubuntu 15.2-1.pgdg22.04+1))
+Type "help" for help.
+
+postgres=# select * from test;
+ c1
+----
+ 1
+(1 row)
+```
+
+
 зайдите через через psql и проверьте содержимое ранее созданной таблицы
 задание со звездочкой *: не удаляя существующий инстанс ВМ сделайте новый, поставьте на его PostgreSQL, удалите файлы с данными из /var/lib/postgres, перемонтируйте внешний диск который сделали ранее от первой виртуальной машины ко второй и запустите PostgreSQL на второй машине так чтобы он работал с данными на внешнем диске, расскажите как вы это сделали и что в итоге получилось.
 
