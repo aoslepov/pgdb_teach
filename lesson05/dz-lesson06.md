@@ -22,6 +22,7 @@ sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)
 wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 sudo apt-get update
 sudo apt-get -y install postgresql-15
+
 sudo -u postgres pg_lsclusters
 Ver Cluster Port Status Owner    Data directory              Log file
 15  main    5432 online postgres /var/lib/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
@@ -53,12 +54,11 @@ postgres=# \dt
 
 ```
 --- заказываем диск размером 10GB
---- монтируем этот диск на ВМ
 
+--- монтируем этот диск на ВМ1
 
 --- проверяем что диск смонтирован
-pg-teach-01# fdisk -l
-
+fdisk -l
 Disk /dev/vdb: 10 GiB, 10737418240 bytes, 20971520 sectors
  Units: sectors of 1 * 512 = 512 bytes
  Sector size (logical/physical): 512 bytes / 8192 bytes
@@ -70,8 +70,7 @@ Disk /dev/vdb: 10 GiB, 10737418240 bytes, 20971520 sectors
 
 
 --- диск пока не размечен
-
- sudo parted -l
+ parted -l
  Error: /dev/vdb: unrecognised disk label
  Model: Virtio Block Device (virtblk)
  Disk /dev/vdb: 10.7GB
@@ -88,7 +87,6 @@ Disk /dev/vdb: 10 GiB, 10737418240 bytes, 20971520 sectors
 
 
 --- размечаем диск
-
 parted -a opt /dev/vdb mkpart primary xfs 0% 100%
 
 lsblk
@@ -101,7 +99,6 @@ vdb    252:16   0    10G  0 disk
 
 
 --- создаём ФС xfs для партиции /dev/vdb1
-
 mkfs.xfs  /dev/vdb1
 specified blocksize 4096 is less than device physical sector size 8192
 switching to logical sector size 512
@@ -120,7 +117,6 @@ realtime =none                   extsz=4096   blocks=0, rtextents=0
 --- создаём каталог для данных, задаём права
 mkdir /mnt/data && chown -R postgres:postgres /mnt/data/
 
-
 --- смотрим uuid диска /dev/vdb1
 blkid
 /dev/vda2: UUID="82aeea96-6d42-49e6-85d5-9071d3c9b6aa" BLOCK_SIZE="4096" TYPE="ext4" PARTUUID="12dde951-b45e-4012-bce4-328a47213d1b"
@@ -134,7 +130,6 @@ mount -a
 
 
 --- после перезагрузки диск по прежнему примонтирован
-
 df -h
 Filesystem      Size  Used Avail Use% Mounted on
 tmpfs           393M  1.2M  392M   1% /run
@@ -166,7 +161,6 @@ Error: /var/lib/postgresql/15/main is not accessible or does not exist
 data_directory = '/mnt/data/postgresql/15/main' 
 
 --- запускаем постгрес, проверяем что кластер запустился и тестовые данные на месте
-
 sudo -u postgres pg_ctlcluster 15 main start
 Warning: the cluster will not be running as a systemd service. Consider using systemctl:
   sudo systemctl start postgresql@15-main
@@ -198,12 +192,12 @@ postgres=# select * from test;
 > задание со звездочкой *: не удаляя существующий инстанс ВМ сделайте новый, поставьте на его PostgreSQL, удалите файлы с данными из /var/lib/postgres, перемонтируйте внешний диск который сделали ранее от первой виртуальной машины ко второй и запустите PostgreSQL на второй машине так чтобы он работал с данными на внешнем диске, расскажите как вы это сделали и что в итоге получилось.
 ```
 
---- выключаем кластер постгрес и отмонтируем каталог с тестовыми данными
+--- выключаем кластер постгрес и отмонтируем каталог с тестовыми данными на ВМ1
 sudo -u postgres pg_ctlcluster 15 main stop
 umount /mnt/data/
 
 
---- проверяем установленную версию постгрес
+--- проверяем установленную версию постгрес на ВМ1
 dpkg -l | grep postgres-15
 ii  postgresql-15                         15.2-1.pgdg22.04+1
 
@@ -223,8 +217,10 @@ sudo apt-get -y install postgresql-15
 sudo -u postgres pg_ctlcluster 15 main stop
 sudo -u postgres pg_lsclusters
 Ver Cluster Port Status Owner    Data directory               Log file
-15  main    5432 down   postgres /mnt/data/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
+15  main    5432 down   postgres /var/lib/postgres/15/main /var/log/postgresql/postgresql-15-main.log
 
+--- удаляем каталог
+rm -r /var/lib/postgres
 
 --- создаём каталог для данных, задаём права
 mkdir /mnt/data && chown -R postgres:postgres /mnt/data/
@@ -267,11 +263,9 @@ tmpfs           393M  4.0K  393M   1% /run/user/1000
 
 --- задаём в конфиге постгрес путь к директории с данными
 vim /etc/postgresql/15/main/postgresql.conf
-data_directory = '/mnt/data/postgresql/15/main' #datadir new path
+data_directory = '/mnt/data/postgresql/15/main' 
 
-
-
---- запускаем кластер
+--- запускаем кластер на ВМ2
 sudo -u postgres pg_ctlcluster 15 main start
   sudo systemctl start postgresql@15-main
 root@pg-teach-02:~# sudo -u postgres pg_lsclusters
