@@ -155,6 +155,7 @@ mv /var/lib/postgresql /mnt/data/
 > напишите что и почему поменяли
 > попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
 > напишите получилось или нет и почему
+> зайдите через через psql и проверьте содержимое ранее созданной таблицы
 ```
 
 --- кластер не запустится - нет каталога с данными
@@ -194,6 +195,99 @@ postgres=# select * from test;
 ```
 
 
-зайдите через через psql и проверьте содержимое ранее созданной таблицы
-задание со звездочкой *: не удаляя существующий инстанс ВМ сделайте новый, поставьте на его PostgreSQL, удалите файлы с данными из /var/lib/postgres, перемонтируйте внешний диск который сделали ранее от первой виртуальной машины ко второй и запустите PostgreSQL на второй машине так чтобы он работал с данными на внешнем диске, расскажите как вы это сделали и что в итоге получилось.
+> задание со звездочкой *: не удаляя существующий инстанс ВМ сделайте новый, поставьте на его PostgreSQL, удалите файлы с данными из /var/lib/postgres, перемонтируйте внешний диск который сделали ранее от первой виртуальной машины ко второй и запустите PostgreSQL на второй машине так чтобы он работал с данными на внешнем диске, расскажите как вы это сделали и что в итоге получилось.
+```
 
+--- выключаем кластер постгрес и отмонтируем каталог с тестовыми данными
+sudo -u postgres pg_ctlcluster 15 main stop
+umount /mnt/data/
+
+
+--- проверяем установленную версию постгрес
+dpkg -l | grep postgres-15
+ii  postgresql-15                         15.2-1.pgdg22.04+1
+
+-- отмонтируем дополнительный диск от ВМ1
+-- заказываем новую ВМ2
+-- монтируем дополнительный диск к ВМ2
+
+--- ставим на ВМ2 postgres-15
+
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+sudo apt-get update
+sudo apt-get -y install postgresql-15
+
+
+--- останавливаем кластер
+sudo -u postgres pg_ctlcluster 15 main stop
+sudo -u postgres pg_lsclusters
+Ver Cluster Port Status Owner    Data directory               Log file
+15  main    5432 down   postgres /mnt/data/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
+
+
+--- создаём каталог для данных, задаём права
+mkdir /mnt/data && chown -R postgres:postgres /mnt/data/
+
+--- проверям что диск подмонтирован к ВМ2
+fdisk -l
+
+Disk /dev/vdb: 10 GiB, 10737418240 bytes, 20971520 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 8192 bytes
+I/O size (minimum/optimal): 8192 bytes / 8192 bytes
+Disklabel type: gpt
+Disk identifier: 28B4B440-C1C4-4794-BDE8-F8646C8535CB
+
+Device     Start      End  Sectors Size Type
+/dev/vdb1   2048 20969471 20967424  10G Linux filesystem
+
+--- смотрим uuid диска, добавляем запись в /etc/fstab, монтируем диск
+blkid
+/dev/vda2: UUID="82aeea96-6d42-49e6-85d5-9071d3c9b6aa" BLOCK_SIZE="4096" TYPE="ext4" PARTUUID="12dde951-b45e-4012-bce4-328a47213d1b"
+/dev/loop1: TYPE="squashfs"
+/dev/loop4: TYPE="squashfs"
+/dev/loop2: TYPE="squashfs"
+/dev/loop0: TYPE="squashfs"
+/dev/loop3: TYPE="squashfs"
+/dev/vdb1: UUID="b4bfd480-631d-4d5c-bd7b-1a076c36fd17" BLOCK_SIZE="512" TYPE="xfs" PARTLABEL="primary" PARTUUID="bf8b2bd4-893c-4b4e-8858-85e26e3b799e"
+/dev/vda1: PARTUUID="0597456a-4228-4f4a-b023-7a349e3b6798"
+
+vim /etc/fstab
+UUID="b4bfd480-631d-4d5c-bd7b-1a076c36fd17" /mnt/data xfs defaults 0 1
+
+df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           393M  1.2M  392M   1% /run
+/dev/vda2        15G  5.3G  8.8G  38% /
+tmpfs           2.0G  1.1M  2.0G   1% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           393M  4.0K  393M   1% /run/user/1000
+/dev/vdb1        10G  182M  9.9G   2% /mnt/data
+
+--- задаём в конфиге постгрес путь к директории с данными
+vim /etc/postgresql/15/main/postgresql.conf
+data_directory = '/mnt/data/postgresql/15/main' #datadir new path
+
+
+
+--- запускаем кластер
+sudo -u postgres pg_ctlcluster 15 main start
+  sudo systemctl start postgresql@15-main
+root@pg-teach-02:~# sudo -u postgres pg_lsclusters
+Ver Cluster Port Status Owner    Data directory               Log file
+15  main    5432 online postgres /mnt/data/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
+
+
+--- проверяем тестовый набор нанных
+sudo -u postgres psql
+could not change directory to "/root": Permission denied
+psql (15.2 (Ubuntu 15.2-1.pgdg22.04+1))
+Type "help" for help.
+
+postgres=# select * from test;
+ c1
+----
+ 1
+(1 row)
+```
