@@ -1,14 +1,14 @@
 ## Работа с postgresql на физическом уровне
 
 
-#### postgres server process (aka postmaster)
+### postgres server process (aka postmaster)
 > первый процесс postgres, запускается при старте сервиса, порождает все остальные процессы, создает shared memory, слушает TCP и Unix socket
 
 <image src="img/server_process.png">
 
 <image src="img/server_process_shared_memory.png">
 
-#### backend processes (aka postgres)
+### backend processes (aka postgres)
 > запускается postmaster, обслуживает сессию, работает пока сессия активна, максимальное количество определяется параметром max_connections
 
 <image src="img/server_process_backends.png">
@@ -23,7 +23,7 @@
 > statscollector (сбор статистики использования по сессиям и таблицам)
 
 
-#### session
+### session
 
 > принадлежит backend процессу
 > work_mem (4 MB) -эта память используется на этапе выполнения запроса для сортировок строк, например ORDER BY и DISTINCT
@@ -38,7 +38,7 @@
 https://postgrespro.ru/docs/postgresql/15/rule-system
 
 
-#### tables
+### tables
 
 > для каждой таблицы создается до 3-х файлов, каждый до 1 Гб, если превышает, то создается файл NNN.1 NNN.2 и т.д. также для FSM и VM:
 > • файл с данными - OID таблицы
@@ -50,7 +50,7 @@ https://postgrespro.ru/docs/postgresql/15/rule-system
 <image src="img/server_process_tables.png">
 
 
-#### toast 
+### toast 
 > Версия строки должна помещаться на одну страницу
 > можно сжать часть атрибутов, или вынести в отдельную TOAST-таблицу, или сжать и вынести одновременно 
 
