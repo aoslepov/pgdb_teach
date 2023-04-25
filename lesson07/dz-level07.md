@@ -41,10 +41,10 @@ testdb=# insert into t1 (c1) values (1);
 testdb=# create role readonly;
 
 -- права на коннект
-grant connect on database testdb to readonly;
+testdb=# grant connect on database testdb to readonly;
 
 -- права на использование схемы testnm
-grant usage on schema testnm to readonly;
+testdb=# grant usage on schema testnm to readonly;
 
 -- права на селект всех таблиц схемы testnm
 grant select on all tables in schema testnm to readonly;
