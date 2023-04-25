@@ -74,8 +74,8 @@ ERROR:  permission denied for table t1
 testdb=> \dt
        List of relations
  Schema | Name | Type  | Owner
---------+------+-------+-------
- public | t1   | table | admin
+--------+------+-------+---------
+ public | t1   | table | postgres
 
 
 --  прав на селект нет, т.к. таблица была создана в схеме public, а права выдавались на схему testnm
@@ -90,10 +90,10 @@ testdb=# select * from pg_tables where tablename not like 'pg%' and tablename no
 testdb=# set search_path=public, testnm;
 testdb=# \dp+
                              Access privileges
- Schema | Name | Type  |  Access privileges  | Column privileges | Policies 
---------+------+-------+---------------------+-------------------+----------
- testnm | t1   | table | admin=arwdDxt/admin+|                   | 
-        |      |       | readonly=r/admin    |                   | 
+ Schema | Name | Type  |  Access privileges         | Column privileges | Policies 
+--------+------+-------+----------------------------+-------------------+----------
+ testnm | t1   | table | postgres=arwdDxt/postgres+ |                   | 
+        |      |       | readonly=r/postgres        |                   | 
 
 
 ```
@@ -138,10 +138,10 @@ testdb=# grant select on testnm.t1  to readonly;
 
 testdb=# \dp+ testnm.t1
                              Access privileges
- Schema | Name | Type  |  Access privileges      | Column privileges | Policies
---------+------+-------+-------------------------+-------------------+----------
- testnm | t1   | table | admin=arwdDxt/postgres+ |                   |
-        |      |       | readonly=r/postgres     |                   |
+ Schema | Name | Type  |  Access privileges         | Column privileges | Policies
+--------+------+-------+----------------------------+-------------------+----------
+ testnm | t1   | table | postgres=arwdDxt/postgres+ |                   |
+        |      |       | readonly=r/postgres        |                   |
 
 
 -- теперь доступ есть
@@ -187,5 +187,10 @@ testdb=>  select t.table_name, t.table_type, c.relname, c.relowner, u.usename
 
 -- подобное можно воспроизвести, если установить владельцем схемы testnm роль readonly
 
+
+-- аналогично не будет прав на создание таблицы
+testdb=> create table t2(c1 integer);
+ERROR:  permission denied for schema public
+LINE 1: create table t2(c1 integer);
 ```
 
