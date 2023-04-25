@@ -188,7 +188,7 @@ testdb=>  select t.table_name, t.table_type, c.relname, c.relowner, u.usename
 -- подобное можно воспроизвести, если установить владельцем схемы testnm роль readonly
 
 
--- аналогично не будет прав на создание таблицы
+-- аналогично не будет прав на создание таблицы в public
 testdb=> create table t2(c1 integer);
 ERROR:  permission denied for schema public
 LINE 1: create table t2(c1 integer);
