@@ -1,5 +1,5 @@
-> Создать инстанс ВМ с 2 ядрами и 4 Гб ОЗУ и SSD 10GB
-> Установить на него PostgreSQL 15 с дефолтными настройками
+> Создать инстанс ВМ с 2 ядрами и 4 Гб ОЗУ и SSD 10GB.
+> Установить на него PostgreSQL 15 с дефолтными настройками.
 ```
 sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
@@ -7,7 +7,7 @@ sudo apt-get update
 sudo apt-get -y install postgresql-15
 ```
 
-> Создать БД для тестов: выполнить pgbench -i postgres
+> Создать БД для тестов: выполнить pgbench -i postgres 
 > Запустить pgbench -c8 -P 6 -T 60 -U postgres postgres
 ```
 sudo -u postgres pgbench -i postgres
@@ -124,15 +124,15 @@ min_wal_size = 4GB # default 80MB
 max_wal_size = 16GB # default  1GB
 
 
--- в результате манипуляций видим улучшение стандартного отклонения латенси более чем в 4 раза
+-- в результате манипуляций видим улучшение стандартного отклонения латенси(stddev) более чем в 4 раза
 -- используются оба ядра
 -- больше памяти для сортировки
 -- больше дискового кеша для запросов
 -- более эффективная параллельная работа
 
 ```
-> Создать таблицу с текстовым полем и заполнить случайными или сгенерированными данным в размере 1млн строк
-> Посмотреть размер файла с таблицей
+> Создать таблицу с текстовым полем и заполнить случайными или сгенерированными данным в размере 1млн строк.
+> Посмотреть размер файла с таблицей.
 ```
 CREATE TABLE test(
   id serial,
@@ -189,14 +189,21 @@ dbtest=# select pg_size_pretty(pg_total_relation_size('test'));
  452 MB
 
 ```
-> Отключить Автовакуум на конкретной таблице
-> 10 раз обновить все строчки и добавить к каждой строчке любой символ
-> Посмотреть размер файла с таблицей
+> Отключить Автовакуум на конкретной таблице.
+> 10 раз обновить все строчки и добавить к каждой строчке любой символ.
+> Посмотреть размер файла с таблицей.
 ```
 alter table test set (autovacuum_enabled = off);
 
 update test set txt = txt || '1';
-...
+update test set txt = txt || '2';
+update test set txt = txt || '3';
+update test set txt = txt || '4';
+update test set txt = txt || '5';
+update test set txt = txt || '6';
+update test set txt = txt || '7';
+update test set txt = txt || '8;
+update test set txt = txt || '9';
 update test set txt = txt || '10';
 
 select pg_size_pretty(pg_total_relation_size('test'));
