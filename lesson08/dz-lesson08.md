@@ -131,63 +131,57 @@ max_wal_size = 16GB # default  1GB
 -- более эффективная параллельная работа
 
 ```
-Создать таблицу с текстовым полем и заполнить случайными или сгенерированными данным в размере 1млн строк
-Посмотреть размер файла с таблицей
+> Создать таблицу с текстовым полем и заполнить случайными или сгенерированными данным в размере 1млн строк
+> Посмотреть размер файла с таблицей
 ```
-dbtest=# CREATE TABLE test(
+CREATE TABLE test(
   id serial,
   txt char(100)
 );
-CREATE TABLE
-dbtest=# create index idx_txt on test(txt);
+create index idx_txt on test(txt);
 
-dbtest=# INSERT INTO test(txt) SELECT 'test' FROM generate_series(1,1000000);
-INSERT 0 1000000
-dbtest=# select pg_size_pretty(pg_total_relation_size('test'));
+INSERT INTO test(txt) SELECT 'test' FROM generate_series(1,1000000);
+
+select pg_size_pretty(pg_total_relation_size('test'));
  pg_size_pretty
 ----------------
  142 MB
 (1 row)
 ```
-5 раз обновить все строчки и добавить к каждой строчке любой символ
-Посмотреть количество мертвых строчек в таблице и когда последний раз приходил автовакуум
+> 5 раз обновить все строчки и добавить к каждой строчке любой символ
+> Посмотреть количество мертвых строчек в таблице и когда последний раз приходил автовакуум
 ```
-dbtest=# update test set txt = txt || '1';
-dbtest=# update test set txt = txt || '2';
-dbtest=# update test set txt = txt || '3';
-dbtest=# update test set txt = txt || '4';
-dbtest=# update test set txt = txt || '5';
+update test set txt = txt || '1';
+update test set txt = txt || '2';
+update test set txt = txt || '3';
+update test set txt = txt || '4';
+update test set txt = txt || '5';
 
-dbtest=# select pg_size_pretty(pg_total_relation_size('test'));
+select pg_size_pretty(pg_total_relation_size('test'));
  pg_size_pretty
 ----------------
  439 MB
 
-dbtest=# SELECT relname, n_live_tup, n_dead_tup, trunc(100*n_dead_tup/(n_live_tup+1))::float "ratio%", last_autovacuum FROM pg_stat_user_TABLEs WHERE relname = 'test';
+SELECT relname, n_live_tup, n_dead_tup, trunc(100*n_dead_tup/(n_live_tup+1))::float "ratio%", last_autovacuum FROM pg_stat_user_TABLEs WHERE relname = 'test';
  relname | n_live_tup | n_dead_tup | ratio% |       last_autovacuum
 ---------+------------+------------+--------+------------------------------
  test    |    1000000 |    1000000 |     99 | 2023-05-03 21:33:48.91609+00
 (1 row)
 ```
-Подождать некоторое время, проверяя, пришел ли автовакуум
-5 раз обновить все строчки и добавить к каждой строчке любой символ
-Посмотреть размер файла с таблицей
+> Подождать некоторое время, проверяя, пришел ли автовакуум
+> 5 раз обновить все строчки и добавить к каждой строчке любой символ
+> Посмотреть размер файла с таблицей
 ```
-dbtest=# SELECT relname, n_live_tup, n_dead_tup, trunc(100*n_dead_tup/(n_live_tup+1))::float "ratio%", last_autovacuum FROM pg_stat_user_TABLEs WHERE relname = 'test';
+SELECT relname, n_live_tup, n_dead_tup, trunc(100*n_dead_tup/(n_live_tup+1))::float "ratio%", last_autovacuum FROM pg_stat_user_TABLEs WHERE relname = 'test';
  relname | n_live_tup | n_dead_tup | ratio% |        last_autovacuum
 ---------+------------+------------+--------+-------------------------------
  test    |    1000000 |          0 |      0 | 2023-05-03 21:34:54.441447+00
 
-dbtest=# update test set txt = txt || '1';
-UPDATE 1000000
-dbtest=# update test set txt = txt || '2';
-UPDATE 1000000
-dbtest=# update test set txt = txt || '3';
-UPDATE 1000000
-dbtest=# update test set txt = txt || '4';
-UPDATE 1000000
-dbtest=# update test set txt = txt || '5';
-UPDATE 1000000
+update test set txt = txt || '1';
+update test set txt = txt || '2';
+update test set txt = txt || '3';
+update test set txt = txt || '4';
+update test set txt = txt || '5';
 
 dbtest=# select pg_size_pretty(pg_total_relation_size('test'));
  pg_size_pretty
@@ -195,16 +189,15 @@ dbtest=# select pg_size_pretty(pg_total_relation_size('test'));
  452 MB
 
 ```
-Отключить Автовакуум на конкретной таблице
-10 раз обновить все строчки и добавить к каждой строчке любой символ
-Посмотреть размер файла с таблицей
+> Отключить Автовакуум на конкретной таблице
+> 10 раз обновить все строчки и добавить к каждой строчке любой символ
+> Посмотреть размер файла с таблицей
 ```
-dbtest=# alter table test set (autovacuum_enabled = off);
-ALTER TABLE
+alter table test set (autovacuum_enabled = off);
 
-dbtest=# update test set txt = txt || '1';
+update test set txt = txt || '1';
 ...
-dbtest=# update test set txt = txt || '10';
+update test set txt = txt || '10';
 
 select pg_size_pretty(pg_total_relation_size('test'));
  pg_size_pretty
@@ -212,14 +205,21 @@ select pg_size_pretty(pg_total_relation_size('test'));
  1587 MB
 
 ```
-Объясните полученный результат
-Не забудьте включить автовакуум)
+> Объясните полученный результат
 ```
-dbtest=# alter table test set (autovacuum_enabled = off);
+-- update в postgres предсставляет собой комбинацию delete+insert
+-- автовакуум удаляет помеченные на удаление строки
+-- при этом в страницах в памяти/на диске остаются дыры
+-- при включенном автовакууме новые строки добавляются частично в эти дыры
+-- при выключенном автовакууме очистка мёртвых строк не происходит и объём бд увеличивается значительно
 ```
-Задание со *:
-Написать анонимную процедуру, в которой в цикле 10 раз обновятся все строчки в искомой таблице.
-Не забыть вывести номер шага цикла.
+> Не забудьте включить автовакуум)
+```
+alter table test set (autovacuum_enabled = on);
+```
+> Задание со *:
+> Написать анонимную процедуру, в которой в цикле 10 раз обновятся все строчки в искомой таблице.
+> Не забыть вывести номер шага цикла.
 ```
 DO
 $do$
