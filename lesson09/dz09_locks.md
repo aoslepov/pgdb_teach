@@ -112,22 +112,29 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-описание
+описание блокировок
 ```
---  транзакция txid1(290) поставила блокировку строки RowExclusiveLock на странице с данными и блокировку типа tupple в памяти
+--  транзакция txid1(290) поставила блокировку строки RowExclusiveLock на странице с данными 
+--- и блокировку типа tupple в памяти
 -- relation | accounts | RowExclusiveLock | t       | 290 | {}
 
--- транзакция txid2(132) поставила блокировку строки RowExclusiveLock на странице с данными и ссылается на tupple txid1(290)
+-- транзакция txid2(132) поставила блокировку строки RowExclusiveLock на странице с данными 
+-- и ссылается на tupple txid1(290)
 --  relation | accounts | RowExclusiveLock | t       | 132 | {290}
 --  tuple    | accounts | ExclusiveLock    | t       | 132 | {290}
 
--- транзакции txid3(336) и txid4(747) также  поставили блокировку строки RowExclusiveLock на странице с данными и ссылаются на tupple txid1(290)
+-- транзакции txid3(336) и txid4(747) также  поставили блокировку строки RowExclusiveLock на странице с данными 
+-- и ссылаются на tupple txid1(290)
 -- tuple    | accounts | ExclusiveLock    | f       | 336 | {132}
 -- relation | accounts | RowExclusiveLock | t       | 336 | {132}
 -- relation | accounts | RowExclusiveLock | t       | 747 | {132,336}
 -- tuple    | accounts | ExclusiveLock    | f       | 747 | {132,336}
 
+```
 
+
+commit в session1 txid1(290)
+```
 -- при коммите txid1(290) очередь перестраивается
 -- блокировка  txid1(290) отпускается, txid2(132) позволяет захватить блокировку и сделать апдейт.
 -- остальные транзакиции выстраиваются в очередь от  txid2(132) и засыпают
@@ -141,7 +148,8 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-
+commit в session2 txid2(132)
+```
 -- при коммите txid2(132) тапл освобождается и очередь перестраивается заново
 -- в данном случае, блокировку смогла захватить txid4(747) и tupple устанавливает она (соответвенно для неё разрешёна блокировка для update)
 -- оставшаяся транзакция txid3(336) становится в очередь за ней
@@ -153,15 +161,17 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
  relation | accounts | RowExclusiveLock | t       | 336 | {747}
  tuple    | accounts | ExclusiveLock    | t       | 336 | {747}
  relation | accounts | RowExclusiveLock | t       | 747 | {}
+```
 
 
-
+commit в session3 txid4(747)
+```
  -- после коммита txid4(747) таппл захватывает txid3(336) (разрешёна блокировка для update)
  lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for  FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
   locktype | relation |       mode       | granted | pid | wait_for
  ----------+----------+------------------+---------+-----+----------
   relation | accounts | RowExclusiveLock | t       | 336 | {}
-
+```
 
 
 
