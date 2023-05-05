@@ -98,3 +98,42 @@ lock_timeout - максимальное время захвата блокиро
 б) Признак блокировки в странице данных (PostgreSQL)
 сложность организации очереди ожидания,
 для которой надо использовать нормальную блокировку
+
+*Блокировки на уровне строк*
+
+Хранятся в заголовке версии строки
+2 режима для изменения: update, no key update
+2 режима для чтения: share, key share
+```
+=> CREATE EXTENSION pgrowlocks;
+=> SELECT locked_row, xids, modes, pids FROM pgrowlocks('t');
+
+locked_row | xids          | modes                         | pids
+------ ----+---------------+-------------------------------+-----------
+(0,1)      | {98765}       | {"Update"}                    | {123}
+(0,2)      | {87654}       | {"For Share"}                 | {234}
+(0,3)      | {98765,87654} | {"No Key Update","Key Share"} | {123,234}
+```
+
+
+**Очередь ожидания**
+
+каждая блокировка проставляет тип tupple
+```
+=> SELECT pid, locktype,transactionid AS xid, tuple AS t, granted FROM pg_locks;
+
+pid | locktype | xid | t | granted
+----+----------------+---+---------
+123 | tuple    |     | 1 | t
+```
+
+
+при попытке захвата данной блокировки другой транзакцией она становится в очередь
+<image src="img/lock_tupple1.png">
+
+
+Transactionid - блокировка на странице с данными
+Tupple - блокировка в оперативной памяти
+
+<image src="img/lock_tupple2.png">
+
