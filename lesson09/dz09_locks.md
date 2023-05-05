@@ -36,7 +36,7 @@ update accounts set amount=amount+2 where acc_no=1;
 
 > Смоделируйте ситуацию обновления одной и той же строки тремя командами UPDATE в разных сеансах. Изучите возникшие блокировки в представлении pg_locks и убедитесь, что все они понятны. Пришлите список блокировок и объясните, что значит каждая.
 
-session1>>
+**session1>>**
 ```
 begin;
 lock=*# SELECT pg_backend_pid();
@@ -48,7 +48,7 @@ UPDATE 1
 
 ```
 
-session2>>
+**session2>>**
 ```
 lock=# begin;
 lock=*# SELECT pg_backend_pid();
@@ -59,7 +59,7 @@ update accounts set amount=amount+2 where acc_no=1;
 
 ```
 
-session3>>
+**session3>>**
 ```
 lock=# begin;
 lock=*# SELECT pg_backend_pid();
@@ -70,7 +70,7 @@ lock=*# SELECT pg_backend_pid();
 update accounts set amount=amount+3 where acc_no=1;
 ```
 
-session4>>
+**session4>>***
 ```
 lock=# begin;
 lock=*# SELECT pg_backend_pid();
@@ -83,7 +83,7 @@ lock=*# update accounts set amount=amount+4 where acc_no=1;
 ```
 
 
-смотрим список блокировок
+**смотрим список блокировок**
 ```
 lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
  locktype | relation |       mode       | granted | pid | wait_for
@@ -104,7 +104,7 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-описание блокировок
+**описание блокировок**
 ```
 --  транзакция txid1(290) поставила блокировку строки RowExclusiveLock на странице с данными 
 --- и блокировку типа tupple в памяти
@@ -125,7 +125,7 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-commit в session1 txid1(290)
+**commit в session1 txid1(290)**
 ```
 -- при коммите txid1(290) очередь перестраивается
 -- блокировка  txid1(290) отпускается, txid2(132) позволяет захватить блокировку и сделать апдейт.
@@ -140,7 +140,7 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-commit в session2 txid2(132)
+**commit в session2 txid2(132)**
 ```
 -- при коммите txid2(132) тапл освобождается и очередь перестраивается заново
 -- в данном случае, блокировку смогла захватить txid4(747) и tupple устанавливает она (соответвенно для неё разрешёна блокировка для update)
@@ -156,7 +156,7 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-commit в session3 txid4(747)
+**commit в session3 txid4(747)**
 ```
  -- после коммита txid4(747) таппл захватывает txid3(336) (разрешёна блокировка для update)
  lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for  FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
