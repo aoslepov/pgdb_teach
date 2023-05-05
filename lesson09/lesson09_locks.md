@@ -132,8 +132,15 @@ pid | locktype | xid | t | granted
 <image src="img/lock_tupple_1.png">
 
 
+```
 Transactionid - блокировка на странице с данными
 Tupple - блокировка в оперативной памяти
 
+NB - при завершении первой транзакции очередь перестраивается за второй в случайном порядке
+```
+
 <image src="img/lock_tupple_2.png">
 
+блокировки типа share влезают без очереди 
+
+<image src="img/lock2.png">
