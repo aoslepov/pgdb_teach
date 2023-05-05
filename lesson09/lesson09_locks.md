@@ -129,11 +129,11 @@ pid | locktype | xid | t | granted
 
 
 при попытке захвата данной блокировки другой транзакцией она становится в очередь
-<image src="img/lock_tupple1.png">
+<image src="img/lock_tupple_1.png">
 
 
 Transactionid - блокировка на странице с данными
 Tupple - блокировка в оперативной памяти
 
-<image src="img/lock_tupple2.png">
+<image src="img/lock_tupple_2.png">
 
