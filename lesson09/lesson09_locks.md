@@ -1,6 +1,6 @@
 LESSON 9 LOCKS
 
-Lightweight Lock, LWLock - используется только ядро субд
+### Lightweight Lock, LWLock - используется только ядро субд
 Монопольный (W) и разделяемый (R) режимы
 + Очередь ожидания
 + Мониторинг
@@ -15,10 +15,9 @@ pid | backend_type   | wait_event_type | wait_event
 234 | client backend | LWLock          | buffer_mapping
 ```
 
-
 buffer_mapping_lock - блокировка хеш таблицы буфферного кеша
 
-Обычные (тяжелые) блокировки
+### Обычные (тяжелые) блокировки
 
 Lock, Heavyweight Lock
 Множество типов, множество режимов, разные задачи
@@ -29,7 +28,7 @@ pg_locks, pg_stat_activity
 
 + Обнаружение взаимоблокировок
 
-Блокировка номера транзакции
+**Блокировка номера транзакции**
 - каждая транзакция в монопольном режиме удерживает свой номер
 - Способ подождать завершения транзакции
 
@@ -43,7 +42,7 @@ pid | locktype      | virtxid | xid   | mode          | granted
 234 | transactionid |         | 98765 | ShareLock     | f
 ```
 
-Расширение отношения
+**Расширение отношения**
 
 Добавление страниц к таблице, индексу и т. п. на время добавления новых страниц в памяти
 ```
@@ -54,7 +53,7 @@ pid | locktype | relation | mode          | granted
 123 | extend   | t        | ExclusiveLock | t
 ```
 
-Блокировки отношений
+**Блокировки отношений**
 
 Различные операции с отношениями, 8 режимов
 ```
@@ -66,8 +65,9 @@ pid | locktype | relation | mode             | granted
 234 | relation | t        | RowExclusiveLock | t
 ```
 
-Режимы и совместимость
+**Режимы и совместимость**
 
+```
 Access Share - SELECT
 Row Share - SELECT FOR UPDATE/SHARE
 Row Exclusive - UPDATE, DELETE, INSERT
@@ -76,14 +76,25 @@ Share - CREATE INDEX
 Share Row - Exclusive CREATE TRIGGER
 Exclusive - REFRESH MATERIALIZED VIEW CONCURRENTLY
 Access Exclusive - DROP, TRUNCATE, VACUUM FULL, REFRESH MATERIALIZED VIEW
+```
 
 
-Честная очередь
+*Честная очередь*
 
 Невовремя выполненная команда парализует систему
-lock_timeout
+lock_timeout - максимальное время захвата блокировки для сессии
 ```
 => SELECT pid, query, pg_blocking_pids(pid) AS blocking FROM pg_stat_activity;
 ```
 
 <image src="img/lock1.png">
+
+
+**Блокировки на уровне строк**
+
+Проблема: потенциально большое количество
+а) Повышение уровня при превышении порога
+теряется эффективность
+б) Признак блокировки в странице данных (PostgreSQL)
+сложность организации очереди ожидания,
+для которой надо использовать нормальную блокировку
