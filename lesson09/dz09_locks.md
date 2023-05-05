@@ -44,7 +44,7 @@ update accounts set amount=amount+2 where acc_no=1;
 
 > Смоделируйте ситуацию обновления одной и той же строки тремя командами UPDATE в разных сеансах. Изучите возникшие блокировки в представлении pg_locks и убедитесь, что все они понятны. Пришлите список блокировок и объясните, что значит каждая.
 
-session2>>
+session1>>
 ```
 begin;
 lock=*# SELECT pg_backend_pid();
@@ -91,8 +91,9 @@ lock=*# update accounts set amount=amount+4 where acc_no=1;
 ```
 
 
-lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
-FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
+смотрим список блокировок
+```
+lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
  locktype | relation |       mode       | granted | pid | wait_for
 ----------+----------+------------------+---------+-----+-----------
  relation | accounts | RowExclusiveLock | t       | 132 | {290}
@@ -104,15 +105,15 @@ FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
  tuple    | accounts | ExclusiveLock    | f       | 747 | {132,336}
 (7 rows)
 
-
-
 -- session pid txid1 = 290
 -- session pid txid2 = 132
 -- session pid txid3 = 336
 -- session pid txid4 = 747
+```
 
 
-
+описание
+```
 --  транзакция txid1(290) поставила блокировку строки RowExclusiveLock на странице с данными и блокировку типа tupple в памяти
 -- relation | accounts | RowExclusiveLock | t       | 290 | {}
 
@@ -137,6 +138,8 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
  relation | accounts | RowExclusiveLock | t       | 132 | {}
  relation | accounts | RowExclusiveLock | t       | 336 | {132}
  relation | accounts | RowExclusiveLock | t       | 747 | {132}
+```
+
 
 
 -- при коммите txid2(132) тапл освобождается и очередь перестраивается заново
