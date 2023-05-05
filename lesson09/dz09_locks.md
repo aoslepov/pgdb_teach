@@ -14,7 +14,7 @@
 Попробуйте воспроизвести такую ситуацию.
 
 
-Настройте сервер так, чтобы в журнал сообщений сбрасывалась информация о блокировках, удерживаемых более 200 миллисекунд. Воспроизведите ситуацию, при которой в журнале появятся такие сообщения
+> Настройте сервер так, чтобы в журнал сообщений сбрасывалась информация о блокировках, удерживаемых более 200 миллисекунд. Воспроизведите ситуацию, при которой в журнале появятся такие сообщения
 
 ```
 -- подготавливаем таблицу
@@ -174,40 +174,33 @@ commit в session3 txid4(747)
 ```
 
 
+> Воспроизведите взаимоблокировку трех транзакций. Можно ли разобраться в ситуации постфактум, изучая журнал сообщений?
 
-=========
 
->>SESSION 1
+каждая транзакция обновляет свою строку
+```
+-- открываем 3 сессии, каждая сессия обновляет всою строчку
 
--- в сессии1 pid(911) открываем транзакцию и обновляем запись с acc_no=1;
-lock=# select * from accounts;
- acc_no | amount
---------+---------
-      2 | 2000.00
-      3 | 3000.00
-      1 | 1010.00
-(3 rows)
+-- session1 > pid(911) 
 
 lock=# begin;
 BEGIN
 lock=*# SELECT pg_backend_pid();
- pg_backend_pid
+ pg_backend_pid 
 ----------------
             911
-lock=*# update accounts set amount = 1000 where acc_no=1;
-UPDATE 1
-
-
-lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
-FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
- locktype | relation |       mode       | granted | pid | wait_for
-----------+----------+------------------+---------+-----+----------
- relation | accounts | RowExclusiveLock | t       | 911 | {}
 (1 row)
 
->>SESSION 2
--- в сессии 2 pid(920) открываем транзакцию и обновляем запись acc_no=2;
--- затем обновляем запись с acc_no=1, она ожидает trx1(911) 
+lock=*# update accounts set amount = 1000 where acc_no=1;
+UPDATE 1
+lock=*# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
+FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
+ locktype | relation |       mode       | granted | pid | wait_for 
+----------+----------+------------------+---------+-----+----------
+ relation | accounts | RowExclusiveLock | t       | 911 | {}
+
+
+-- session2 > pid(920)
 
 lock=# begin;
 BEGIN
@@ -215,58 +208,116 @@ lock=*# SELECT pg_backend_pid();
  pg_backend_pid
 ----------------
             920
-lock=*# update accounts set amount = 2000 where acc_no=2;
+lock=*# update accounts set amount = 1000 where acc_no=2;
 UPDATE 1
-lock=*#
-lock=*# update accounts set amount = 2000 where acc_no=1;
-UPDATE 1
-
-lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
+lock=*# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
 FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
- locktype | relation |       mode       | granted | pid | wait_for
+ locktype | relation |       mode       | granted | pid | wait_for 
 ----------+----------+------------------+---------+-----+----------
  relation | accounts | RowExclusiveLock | t       | 911 | {}
- relation | accounts | RowExclusiveLock | t       | 920 | {911}
- tuple    | accounts | ExclusiveLock    | t       | 920 | {911}
-(3 rows)
+ relation | accounts | RowExclusiveLock | t       | 920 | {}
 
-SESSION1>>
--- далее в сессии 1 trxid1(911) обновляем acc_no=2;
 
-lock=*# update accounts set amount = 1000 where acc_no=2;
-ERROR:  deadlock detected
-DETAIL:  Process 911 waits for ShareLock on transaction 857; blocked by process 920.
-Process 920 waits for ShareLock on transaction 856; blocked by process 911.
-HINT:  See server log for query details.
-CONTEXT:  while updating tuple (0,2) in relation "accounts"
+-- session3 > pid(1219)
 
--- т.к. запись уже заблокирована trxid2(920), а запись trxid2(920) стоит в очереди за trxid1(911), образуется взаимоблокировка (dead_lock)
+lock=# begin;
+BEGIN
+lock=*# SELECT pg_backend_pid();
+ pg_backend_pid 
+----------------
+           1219
+(1 row)
+
+lock=*# update accounts set amount = 1000 where acc_no=3;
+UPDATE 1
+lock=*# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
+FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
+ locktype | relation |       mode       | granted | pid  | wait_for 
+----------+----------+------------------+---------+------+----------
+ relation | accounts | RowExclusiveLock | t       |  911 | {}
+ relation | accounts | RowExclusiveLock | t       |  920 | {}
+ relation | accounts | RowExclusiveLock | t       | 1219 | {}
+
+```
+
+сессия 2 обновляет строку 3, а сессия 3 обновляет строку 1
+```
+-- session2 > pid(920)
+-- обновляем acc_no=3. ожидает блокировки, т.к. она уже заблокирована pid(1219)
+lock=*# update accounts set amount = 1000 where acc_no=3;
+
+-- session3 > pid(1219) 
+-- обновляем acc_no=1. ожидает блокировки, т.к. она уже заблокирована pid(911)
+lock=* #update accounts set amount = 1000 where acc_no=1;
+lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
+FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
+ locktype | relation |       mode       | granted | pid  | wait_for 
+----------+----------+------------------+---------+------+----------
+ relation | accounts | RowExclusiveLock | t       |  911 | {}
+ relation | accounts | RowExclusiveLock | t       |  920 | {1219}
+ tuple    | accounts | ExclusiveLock    | t       |  920 | {1219}
+ relation | accounts | RowExclusiveLock | t       | 1219 | {911}
+ tuple    | accounts | ExclusiveLock    | t       | 1219 | {911}
+```
+
+
+описание дедлока
+```
+-- session1 > pid(911)
+-- обновляем acc_no=2 
+-- pid(1219) ожидает освобождения блокировки от pid(920)
+-- pid(220) ожидает освобождения блокировки от pid(1219)
+-- при попытке pid(911) взять блокировку на строку, которая заблокирована pid(920) образуется взаимоблокировка (dead_lock)
 -- транзакция trxid1(911) не может захватить блокировку в течении deadlock_timeout и вызывает процесс разрешения взаимоблокировок
 -- в случае обнаружения взаимоблокировки postgres убивает процесс,который инициализировал поиск взаимоблокировки
 
 
-=======
+lock=*# update accounts set amount = 1000 where acc_no=2;
+ERROR:  deadlock detected
+DETAIL:  Process 911 waits for ShareLock on transaction 860; blocked by process 920.
+Process 920 waits for ShareLock on transaction 862; blocked by process 1219.
+Process 1219 waits for ShareLock on transaction 858; blocked by process 911.
+HINT:  See server log for query details.
+CONTEXT:  while updating tuple (0,2) in relation "accounts"
 
+-- при этом блокировака в session3 pid(1219) становится возможной, update выполнияетя
+-- session2 pid(920) будет ожидать коммита в pid(1219)
+
+lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
+FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
+ locktype | relation |       mode       | granted | pid  | wait_for 
+----------+----------+------------------+---------+------+----------
+ relation | accounts | RowExclusiveLock | t       |  920 | {1219}
+ tuple    | accounts | ExclusiveLock    | t       |  920 | {1219}
+ relation | accounts | RowExclusiveLock | t       | 1219 | {}
+
+```
+
+
+
+
+анализ лога
+
+```
 --- в данном логе транзакция trxid1(911) была убита, т.к. вызвала дедлок
--- транзакция trxid2(920) завершилась успешно
 
-2023-05-05 12:38:26.487 UTC [911] DETAIL:  Process holding the lock: 336. Wait queue: 911.
-2023-05-05 12:38:26.487 UTC [911] CONTEXT:  while updating tuple (0,7) in relation "accounts"
-2023-05-05 12:38:26.487 UTC [911] STATEMENT:  update accounts set amount = 1000 where acc_no=1;
-2023-05-05 12:38:36.950 UTC [911] LOG:  process 911 acquired ShareLock on transaction 855 after 11463.092 ms
-2023-05-05 12:38:36.950 UTC [911] CONTEXT:  while updating tuple (0,7) in relation "accounts"
-2023-05-05 12:38:36.950 UTC [911] STATEMENT:  update accounts set amount = 1000 where acc_no=1;
-2023-05-05 12:38:36.950 UTC [911] LOG:  duration: 11463.863 ms  statement: update accounts set amount = 1000 where acc_no=1;
-2023-05-05 12:40:05.294 UTC [920] LOG:  process 920 still waiting for ShareLock on transaction 856 after 1000.222 ms
-2023-05-05 12:40:05.294 UTC [920] DETAIL:  Process holding the lock: 911. Wait queue: 920.
-2023-05-05 12:40:05.294 UTC [920] CONTEXT:  while updating tuple (0,7) in relation "accounts"
-2023-05-05 12:40:05.294 UTC [920] STATEMENT:  update accounts set amount = 2000 where acc_no=1;
-2023-05-05 12:40:41.022 UTC [911] LOG:  process 911 detected deadlock while waiting for ShareLock on transaction 857 after 1000.106 ms
-2023-05-05 12:40:41.022 UTC [911] DETAIL:  Process holding the lock: 920. Wait queue: .
-2023-05-05 12:40:41.022 UTC [911] CONTEXT:  while updating tuple (0,2) in relation "accounts"
-2023-05-05 12:40:41.022 UTC [911] STATEMENT:  update accounts set amount = 1000 where acc_no=2;
-2023-05-05 12:40:41.022 UTC [911] ERROR:  deadlock detected
-2023-05-05 12:40:41.022 UTC [911] DETAIL:  Process 911 waits for ShareLock on transaction 857; blocked by process 920.
-	Process 920 waits for ShareLock on transaction 856; blocked by process 911.
+2023-05-05 14:07:52.572 UTC [920] LOG:  process 920 still waiting for ShareLock on transaction 862 after 1000.202 ms
+2023-05-05 14:07:52.572 UTC [920] DETAIL:  Process holding the lock: 1219. Wait queue: 920.
+2023-05-05 14:07:52.572 UTC [920] CONTEXT:  while updating tuple (0,3) in relation "accounts"
+2023-05-05 14:07:52.572 UTC [920] STATEMENT:  update accounts set amount = 1000 where acc_no=3;
+2023-05-05 14:10:59.834 UTC [1219] LOG:  process 1219 still waiting for ShareLock on transaction 858 after 1000.077 ms
+2023-05-05 14:10:59.834 UTC [1219] DETAIL:  Process holding the lock: 911. Wait queue: 1219.
+2023-05-05 14:10:59.834 UTC [1219] CONTEXT:  while updating tuple (0,7) in relation "accounts"
+2023-05-05 14:10:59.834 UTC [1219] STATEMENT:  update accounts set amount = 1000 where acc_no=1;
+2023-05-05 14:14:44.320 UTC [911] LOG:  process 911 detected deadlock while waiting for ShareLock on transaction 860 after 1000.072 ms
+2023-05-05 14:14:44.320 UTC [911] DETAIL:  Process holding the lock: 920. Wait queue: .
+2023-05-05 14:14:44.320 UTC [911] CONTEXT:  while updating tuple (0,2) in relation "accounts"
+2023-05-05 14:14:44.320 UTC [911] STATEMENT:  update accounts set amount = 1000 where acc_no=2;
+2023-05-05 14:14:44.320 UTC [911] ERROR:  deadlock detected
+2023-05-05 14:14:44.320 UTC [911] DETAIL:  Process 911 waits for ShareLock on transaction 860; blocked by process 920.
+	Process 920 waits for ShareLock on transaction 862; blocked by process 1219.
+	Process 1219 waits for ShareLock on transaction 858; blocked by process 911.
 	Process 911: update accounts set amount = 1000 where acc_no=2;
-	Process 920: update accounts set amount = 2000 where acc_no=1;
+	Process 920: update accounts set amount = 1000 where acc_no=3;
+	Process 1219: update accounts set amount = 1000 where acc_no=1;
+```
