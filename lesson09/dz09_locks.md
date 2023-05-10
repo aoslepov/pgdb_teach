@@ -34,9 +34,11 @@ update accounts set amount=amount+2 where acc_no=1;
 2023-05-05 11:49:08.519 UTC [336] DETAIL:  Process holding the lock: 132. Wait queue: 336.
 ```
 
+>
 > Смоделируйте ситуацию обновления одной и той же строки тремя командами UPDATE в разных сеансах. Изучите возникшие блокировки в представлении pg_locks и убедитесь, что все они понятны. Пришлите список блокировок и объясните, что значит каждая.
+>
 
-**session1>>**
+*session1>>*
 ```
 begin;
 lock=*# SELECT pg_backend_pid();
@@ -48,7 +50,7 @@ UPDATE 1
 
 ```
 
-**session2>>**
+*session2>>*
 ```
 lock=# begin;
 lock=*# SELECT pg_backend_pid();
@@ -59,7 +61,7 @@ update accounts set amount=amount+2 where acc_no=1;
 
 ```
 
-**session3>>**
+*session3>>*
 ```
 lock=# begin;
 lock=*# SELECT pg_backend_pid();
@@ -70,7 +72,7 @@ lock=*# SELECT pg_backend_pid();
 update accounts set amount=amount+3 where acc_no=1;
 ```
 
-**session4>>***
+*session4>>*
 ```
 lock=# begin;
 lock=*# SELECT pg_backend_pid();
@@ -83,7 +85,7 @@ lock=*# update accounts set amount=amount+4 where acc_no=1;
 ```
 
 
-**смотрим список блокировок**
+*смотрим список блокировок*
 ```
 lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
  locktype | relation |       mode       | granted | pid | wait_for
@@ -104,7 +106,7 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-**описание блокировок**
+*описание блокировок*
 ```
 --  транзакция txid1(290) поставила блокировку строки RowExclusiveLock на странице с данными 
 --- и блокировку типа tupple в памяти
@@ -125,7 +127,7 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-**commit в session1 txid1(290)**
+*commit в session1 txid1(290)*
 ```
 -- при коммите txid1(290) очередь перестраивается
 -- блокировка  txid1(290) отпускается, txid2(132) позволяет захватить блокировку и сделать апдейт.
@@ -140,7 +142,7 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-**commit в session2 txid2(132)**
+*commit в session2 txid2(132)*
 ```
 -- при коммите txid2(132) тапл освобождается и очередь перестраивается заново
 -- в данном случае, блокировку смогла захватить txid4(747) и tupple устанавливает она (соответвенно для неё разрешёна блокировка для update)
@@ -156,7 +158,7 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
 ```
 
 
-**commit в session3 txid4(747)**
+*commit в session3 txid4(747)*
 ```
  -- после коммита txid4(747) таппл захватывает txid3(336) (разрешёна блокировка для update)
  lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for  FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
@@ -165,11 +167,11 @@ lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids
   relation | accounts | RowExclusiveLock | t       | 336 | {}
 ```
 
-
+>
 > Воспроизведите взаимоблокировку трех транзакций. Можно ли разобраться в ситуации постфактум, изучая журнал сообщений?
+>
 
-
-каждая транзакция обновляет свою строку
+*каждая транзакция обновляет свою строку*
 ```
 -- открываем 3 сессии, каждая сессия обновляет всою строчку
 
@@ -232,7 +234,7 @@ FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
 
 ```
 
-сессия 2 обновляет строку 3, а сессия 3 обновляет строку 1
+*сессия 2 обновляет строку 3, а сессия 3 обновляет строку 1*
 ```
 -- session2 > pid(920)
 -- обновляем acc_no=3. ожидает блокировки, т.к. она уже заблокирована pid(1219)
@@ -253,7 +255,7 @@ FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
 ```
 
 
-описание дедлока
+*описание дедлока*
 ```
 -- session1 > pid(911)
 -- обновляем acc_no=2 
@@ -288,7 +290,7 @@ FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
 
 
 
-анализ лога
+*Анализ лога*
 
 ```
 --- в данном логе видно, что транзакция trxid1(911) была убита, т.к. вызвала дедлок
@@ -314,9 +316,11 @@ FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
 	Process 1219: update accounts set amount = 1000 where acc_no=1;
 ```
 
+> 
 > Могут ли две транзакции, выполняющие единственную команду UPDATE одной и той же таблицы (без where), заблокировать друг друга?
 > Задание со звездочкой*
 > Попробуйте воспроизвести такую ситуацию.
+> 
 
 ```
 -- дедлок может возникнуть при изменении порядка обхода строк при блокировках рахных транзакций
