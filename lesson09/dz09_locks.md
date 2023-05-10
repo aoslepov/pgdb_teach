@@ -319,7 +319,89 @@ FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
 > Попробуйте воспроизвести такую ситуацию.
 
 ```
--- в общем случае взаимоблокировки не будет, т.к. строки будут заблокированы одной транзакцией, а вторая будет ожидать освобождения для блокировки
--- дедлок может возникнуть при изменении порядка блокировки строк (например, изменение плана запроса)
+-- дедлок может возникнуть при изменении порядка обхода строк при блокировках рахных транзакций
+-- select for update и update
 ```
+
+
+*session1>>*
+```
+-- каждая транзакция выполняет select for update для разных строк
+
+lock=# begin;
+BEGIN
+lock=*# SELECT pg_backend_pid();
+ pg_backend_pid
+----------------
+            564
+(1 row)
+
+lock=*# select * from accounts where acc_no=1 for update;
+ acc_no | amount
+--------+--------
+      1 |   2000
+(1 row)
+```
+
+*session2>>*
+```
+lock=# begin;
+BEGIN
+lock=*# SELECT pg_backend_pid();
+ pg_backend_pid
+----------------
+            573
+(1 row)
+
+lock=*# select * from accounts where acc_no=2 for update;
+ acc_no | amount
+--------+--------
+      2 |   2000
+(1 row)
+
+
+-- каждая транзакция делает выборку из данных и вешает блокировку на строку
+lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
+FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
+ locktype | relation |     mode     | granted | pid | wait_for
+----------+----------+--------------+---------+-----+----------
+ relation | accounts | RowShareLock | t       | 564 | {}
+ relation | accounts | RowShareLock | t       | 573 | {}
+(2 rows)
+
+
+
+-- при попытке обновить все строки во второй сессии (573) уровень необходима эксклюзивная блокировка, но её держит первая сессия (564)
+-- транзакция страновится в очередь
+lock=*# update accounts set amount=10;
+UPDATE 3
+
+lock=# SELECT locktype, relation::REGCLASS, mode, granted, pid, pg_blocking_pids(pid) AS wait_for
+FROM pg_locks WHERE relation = 'accounts'::regclass order by pid;
+ locktype | relation |       mode       | granted | pid | wait_for
+----------+----------+------------------+---------+-----+----------
+ relation | accounts | RowShareLock     | t       | 564 | {}
+ relation | accounts | RowShareLock     | t       | 573 | {564}
+ relation | accounts | RowExclusiveLock | t       | 573 | {564}
+ tuple    | accounts | ExclusiveLock    | t       | 573 | {564}
+```
+
+
+*session1>>*
+```
+
+-- при попытке обновить данные в первой сессии будет попытка эксклюзивной блокировки всех строк, но т.к. вторая сессия (573) уже ожидает блокировки, а есть строки, заблокированные первой сессией
+-- это будет невозможно и транзакция будет убита
+lock=*# update accounts set amount=10;
+ERROR:  deadlock detected
+DETAIL:  Process 564 waits for ShareLock on transaction 881; blocked by process 573.
+Process 573 waits for ShareLock on transaction 880; blocked by process 564.
+HINT:  See server log for query details.
+CONTEXT:  while updating tuple (0,51) in relation "accounts"
+
+```
+
+
+
+
 
