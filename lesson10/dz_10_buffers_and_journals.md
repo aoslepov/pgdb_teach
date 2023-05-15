@@ -36,8 +36,6 @@ select pg_current_wal_insert_lsn();
  0/1A39DD0
 
 
-
-
 -- запускаем тест на 10 мин
  sudo -u postgres pgbench -i journal
  sudo -u postgres pgbench -c8 -P 6 -T 600 -U postgres journal
