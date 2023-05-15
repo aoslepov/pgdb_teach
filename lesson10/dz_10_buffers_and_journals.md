@@ -6,14 +6,6 @@
 уметь настраивать параметры журналов**
 
 #### Описание/Пошаговая инструкция выполнения домашнего задания:
-Настройте выполнение контрольной точки раз в 30 секунд.
-10 минут c помощью утилиты pgbench подавайте нагрузку.
-Измерьте, какой объем журнальных файлов был сгенерирован за это время. Оцените, какой объем приходится в среднем на одну контрольную точку.
-Проверьте данные статистики: все ли контрольные точки выполнялись точно по расписанию. Почему так произошло?
-Сравните tps в синхронном/асинхронном режиме утилитой pgbench. Объясните полученный результат.
-Создайте новый кластер с включенной контрольной суммой страниц. Создайте таблицу. Вставьте несколько значений. Выключите кластер. Измените пару байт в таблице. Включите кластер и сделайте выборку из таблицы. Что и почему произошло? как проигнорировать ошибку и продолжить работу?
-
-
 
 
 > Настройте выполнение контрольной точки раз в 30 секунд.
@@ -96,8 +88,7 @@ buffers_backend_fsync | 0
 buffers_alloc         | 523015
 stats_reset           | 2023-05-13 19:56:13.586983+0
 
-https://postgrespro.ru/docs/postgrespro/9.5/monitoring-stats#pg-stat-bgwriter-view
-
+-- https://postgrespro.ru/docs/postgrespro/15/monitoring-stats#MONITORING-PG-STAT-BGWRITER-VIEW
 -- все чекпоинты были выполнены вовремя
 -- о задержке чекпоинтов говорит параметр maxwritten_clean 
 -- приостановка процесса чекпоинта из-за большого кол-ва грязных страниц
@@ -106,11 +97,15 @@ https://postgrespro.ru/docs/postgrespro/9.5/monitoring-stats#pg-stat-bgwriter-vi
 > Сравните tps в синхронном/асинхронном режиме утилитой pgbench. Объясните полученный результат.
 
 ```
+-- тестируем в смнхронном режиме
+
 show synchronous_commit;
  synchronous_commit
+----------------------
   on
 
--- тестируем в смнхронном режиме
+
+ sudo -u postgres pgbench -c8 -P 6 -T 60 -U postgres journal
 progress: 6.0 s, 530.5 tps, lat 15.022 ms stddev 14.330, 0 failed
 progress: 12.0 s, 605.2 tps, lat 13.223 ms stddev 13.704, 0 failed
 progress: 18.0 s, 568.2 tps, lat 14.077 ms stddev 14.459, 0 failed
@@ -135,12 +130,16 @@ latency stddev = 26.634 ms
 initial connection time = 16.428 ms
 tps = 538.450598 (without initial connection time)
 
-alter system set synchronous_commit to 'off';
-select pg_reload_conf();
-show synchronous_commit;
-off
 
 -- тестируем в асинхронном режиме коммита
+alter system set synchronous_commit to 'off';
+select pg_reload_conf();
+
+ synchronous_commit
+----------------------
+  off
+
+ sudo -u postgres pgbench -c8 -P 6 -T 60 -U postgres journal
 progress: 6.0 s, 2826.7 tps, lat 2.820 ms stddev 1.885, 0 failed
 progress: 12.0 s, 2868.7 tps, lat 2.789 ms stddev 1.229, 0 failed
 progress: 18.0 s, 2845.5 tps, lat 2.811 ms stddev 2.085, 0 failed
@@ -165,9 +164,9 @@ latency stddev = 15.076 ms
 initial connection time = 16.555 ms
 tps = 2624.744274 (without initial connection time)
 
--- клиенту сообщается о записи в wal сразу после завершения транзакции
--- сама запись будет позже в асинхронном режиме
--- это не гарантирует её пападение в wal в случае сбоя на момент транзакции
+-- при synchronous_commit=off клиенту сообщается о записи в wal сразу после завершения транзакции
+-- сама запись будет добавлена в wal позже в асинхронном режиме
+-- и это не гарантирует её пападение в wal в случае сбоя на момент транзакции
 -- но значительно увеличивает tps 
 ```
 
@@ -192,7 +191,7 @@ insert into test values (1),(2),(3);
 
 
 -- смотрим путь к файлу с таблицей
-postgres=# SELECT pg_relation_filepath('test');
+SELECT pg_relation_filepath('test');
  pg_relation_filepath
 ----------------------
  base/5/16388
