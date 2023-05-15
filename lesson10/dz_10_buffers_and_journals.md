@@ -1,11 +1,11 @@
-Домашнее задание
-Работа с журналами
+### Домашнее задание
+#### Работа с журналами
 
-Цель:
+**Цель:
 уметь работать с журналами и контрольными точками
-уметь настраивать параметры журналов
+уметь настраивать параметры журналов**
 
-Описание/Пошаговая инструкция выполнения домашнего задания:
+#### Описание/Пошаговая инструкция выполнения домашнего задания:
 Настройте выполнение контрольной точки раз в 30 секунд.
 10 минут c помощью утилиты pgbench подавайте нагрузку.
 Измерьте, какой объем журнальных файлов был сгенерирован за это время. Оцените, какой объем приходится в среднем на одну контрольную точку.
@@ -15,35 +15,38 @@
 
 
 
+
+> Настройте выполнение контрольной точки раз в 30 секунд.
+> 10 минут c помощью утилиты pgbench подавайте нагрузку.
+> Измерьте, какой объем журнальных файлов был сгенерирован за это время. Оцените, какой объем приходится в среднем на одну контрольную точку.
+> Проверьте данные статистики: все ли контрольные точки выполнялись точно по расписанию. Почему так произошло?
+
+```
+
+-- устанавливаем таймаут контрольой точки
 alter system set checkpoint_timeout to '30s';
 
-journal=# select pg_reload_conf();
- pg_reload_conf
-----------------
- t
-(1 row)
-
-journal=# show checkpoint_timeout;
- checkpoint_timeout
---------------------
- 30s
-
-journal=# select pg_size_pretty(sum(size)) from pg_ls_waldir();
- pg_size_pretty
-----------------
- 16 MB
+-- перечитываем конфигурацию
+select pg_reload_conf();
 
 
-
+-- ставим расширение page_inspect
 create extension page_inspect;
 
+
+-- сбрасываем статистику bgwriter
+select pg_stat_reset_shared('bgwriter');
+
+-- смотрим lsn до старта 
 select pg_current_wal_insert_lsn();
  pg_current_wal_insert_lsn
 ---------------------------
  0/1A39DD0
 
-select pg_stat_reset_shared('bgwriter');
 
+
+
+-- запускаем тест на 10 мин
  sudo -u postgres pgbench -i journal
  sudo -u postgres pgbench -c8 -P 6 -T 600 -U postgres journal
 
@@ -60,14 +63,16 @@ select pg_stat_reset_shared('bgwriter');
  initial connection time = 16.824 ms
  tps = 514.754838 (without initial connection time)
 
- journal=# select pg_current_wal_insert_lsn();
+
+-- смотрим lsn по окончанию
+select pg_current_wal_insert_lsn();
   pg_current_wal_insert_lsn
  ---------------------------
   0/1D8D4320
 
 
-
- journal=# select pg_size_pretty('0/1D8D4320'::pg_lsn - '0/1A39DD0'::pg_lsn);
+-- смотрим размер журнала, сгенерированного во время теста
+select pg_size_pretty('0/1D8D4320'::pg_lsn - '0/1A39DD0'::pg_lsn);
   pg_size_pretty
  ----------------
   447 MB
@@ -75,13 +80,9 @@ select pg_stat_reset_shared('bgwriter');
 -- в среднем 22,35 MB на контрольную точку
 
 
-  journal=# select pg_size_pretty(sum(size)) from pg_ls_waldir();
-   pg_size_pretty
-  ----------------
-   64 MB
 
-
-journal=# select * from pg_stat_bgwriter\gx
+-- смотрим статистику
+select * from pg_stat_bgwriter\gx
 -[ RECORD 1 ]---------+------------------------------
 checkpoints_timed     | 21
 checkpoints_req       | 0
@@ -97,13 +98,19 @@ stats_reset           | 2023-05-13 19:56:13.586983+0
 
 https://postgrespro.ru/docs/postgrespro/9.5/monitoring-stats#pg-stat-bgwriter-view
 
+-- все чекпоинты были выполнены вовремя
+-- о задержке чекпоинтов говорит параметр maxwritten_clean 
+-- приостановка процесса чекпоинта из-за большого кол-ва грязных страниц
+```
 
-SYNC/ASYNC
+> Сравните tps в синхронном/асинхронном режиме утилитой pgbench. Объясните полученный результат.
 
-journal=# show synchronous_commit;
+```
+show synchronous_commit;
  synchronous_commit
   on
 
+-- тестируем в смнхронном режиме
 progress: 6.0 s, 530.5 tps, lat 15.022 ms stddev 14.330, 0 failed
 progress: 12.0 s, 605.2 tps, lat 13.223 ms stddev 13.704, 0 failed
 progress: 18.0 s, 568.2 tps, lat 14.077 ms stddev 14.459, 0 failed
@@ -133,6 +140,7 @@ select pg_reload_conf();
 show synchronous_commit;
 off
 
+-- тестируем в асинхронном режиме коммита
 progress: 6.0 s, 2826.7 tps, lat 2.820 ms stddev 1.885, 0 failed
 progress: 12.0 s, 2868.7 tps, lat 2.789 ms stddev 1.229, 0 failed
 progress: 18.0 s, 2845.5 tps, lat 2.811 ms stddev 2.085, 0 failed
@@ -157,41 +165,54 @@ latency stddev = 15.076 ms
 initial connection time = 16.555 ms
 tps = 2624.744274 (without initial connection time)
 
+-- клиенту сообщается о записи в wal сразу после завершения транзакции
+-- сама запись будет позже в асинхронном режиме
+-- это не гарантирует её пападение в wal в случае сбоя на момент транзакции
+-- но значительно увеличивает tps 
+```
 
-sudo -u postgres pg_ctlcluster 15 main stop
+>Создайте новый кластер с включенной контрольной суммой страниц. Создайте таблицу. Вставьте несколько значений. Выключите кластер. Измените пару байт в таблице. Включите кластер и сделайте выборку из таблицы. Что и почему произошло? как проигнорировать ошибку и продолжить работу?
+
+```
+
+-- создаем класер с включённой поддержкой чексумм на страницах
 mkdir -p /var/lib/pgsql
 chown -R postgres:postgres /var/lib/pgsql
-
-
 sudo -u postgres pg_createcluster -D /var/lib/pgsql 15 test -- --data-checksums
-
 sudo -u postgrespg_ctlcluster 15 test start
 
 sudo -u postgres pg_lsclusters
-15  main    5432 down   postgres /var/lib/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
+15  main    5432 online postgres /var/lib/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
 15  test    5433 online postgres /var/lib/pgsql              /var/log/postgresql/postgresql-15-test.log
 
+-- добавляем тестовые данные
 sudo -u postgres psql -p 5433
 create table test(i int);
 insert into test values (1),(2),(3);
 
+
+-- смотрим путь к файлу с таблицей
 postgres=# SELECT pg_relation_filepath('test');
  pg_relation_filepath
 ----------------------
  base/5/16388
 
+-- правим файл в редакторе
+-- при селекте будет ошибка чексуммы
  postgres=# select * from test;
  WARNING:  page verification failed, calculated checksum 16068 but expected 28862
  ERROR:  invalid page in block 0 of relation base/5/16388
 
- postgres=# alter system set ignore_checksum_failure to  'on';
- ALTER SYSTEM
- postgres=# select pg_reload_conf();
+-- включаем опцию игнорирования ошибок чексумм
+ alter system set ignore_checksum_failure to  'on';
+ select pg_reload_conf();
 
+
+-- запрос к таблице становится возможен, но с предупреждением об ошибках чексумм
 postgres=# select * from test;
 WARNING:  page verification failed, calculated checksum 16068 but expected 28862
  i 
 ---
  1
  2
-
+```
