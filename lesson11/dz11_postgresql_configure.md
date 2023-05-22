@@ -162,8 +162,9 @@ vacuumdb -j 2 -d test -z -h 127.0.0.1 -U test -W
 echo 3 > /proc/sys/vm/drop_caches
 
 
+-- запускаем тест
 ./tpcc.lua --pgsql-user=test --pgsql-db=test --pgsql-password=test --pgsql-host=127.0.0.1 --time=60 --threads=2 --report-interval=1 --tables=1 --scale=1 --use_fk=0 --trx_level=RC --db-driver=pgsql run
-
+```
 
 *original config =>*
 ```
