@@ -39,8 +39,6 @@ tps = 204.900910 (including reconnection time)
 max_connections = 100
 superuser_reserved_connections = 3
 
--- конфигурация памяти
-
 -- буфферы разделяемой памяти
 -- shared_buffers - 1/3 RAM
 shared_buffers = '1 GB' 
@@ -101,7 +99,6 @@ parallel_leader_participation = on
 -- выключаем автовакуум
 autovacuum = off
 
-
 ```
 
 
@@ -135,7 +132,7 @@ latency average: 196.134 ms  --> 189.352
 latency stddev:  234.118 ms  --> 204.572
 tps:             204.900910  --> 256.613164
 
---  при данном конфиге данные тетового прогона полностью умещаются в ram
+--  при данном конфиге данные теcтового прогона полностью умещаются в ram
 --  также минимизировано кол-во обращений к диску
 ```
 
@@ -143,7 +140,7 @@ tps:             204.900910  --> 256.613164
 
 >Задание со *: аналогично протестировать через утилиту https://github.com/Percona-Lab/sysbench-tpcc (требует установки https://github.com/akopytov/sysbench)
 
-``
+```
 -- ставим пакет sysbench
 curl -s https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | sudo bash
 sudo apt -y install sysbench
@@ -160,7 +157,7 @@ create user test  with password 'test' login superuser;
 ./tpcc.lua --pgsql-user=test --pgsql-db=test --pgsql-password=test --pgsql-host=127.0.0.1 --time=60 --threads=2 --report-interval=1 --tables=1 --scale=1 --use_fk=0 --trx_level=RC --db-driver=pgsql prepare
 
 
--- запускем vacuum+analyze для бд test и спрасываем кеши ос
+-- запускем vacuum+analyze для бд test и спрасываем кеши ос перед каждум тестом
 vacuumdb -j 2 -d test -z -h 127.0.0.1 -U test -W
 echo 3 > /proc/sys/vm/drop_caches
 
@@ -198,7 +195,7 @@ Threads fairness:
 ``
 
 
-tuned =>
+*tuned =>*
 ```
 SQL statistics:
     queries performed:
