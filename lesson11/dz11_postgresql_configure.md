@@ -33,14 +33,14 @@ tps = 204.900910 (including reconnection time)
 
 *Добавляем в conf.d tune.conf*
 ```
--- конфигурация для cpu 2/ram 4gb
+-- конфигурация  для CPU2, RAM 4gb,DISK SSD 10GB
 
 -- определяем максимальное кол-во коннектов и резервные коннекты для суперюзеров
 max_connections = 100
 superuser_reserved_connections = 3
 
 -- буфферы разделяемой памяти
--- shared_buffers - 1/3 RAM
+-- shared_buffers ~ 1/3 RAM
 shared_buffers = '1 GB' 
 
 -- размер памяти для хеш таблиц и сортировки в рамках коннекта
@@ -83,11 +83,8 @@ checkpoint_completion_target = 0.9
 -- отключено сжатие wal
 wal_compression = off
 
--- асинхронный коммит и конфигурация bgwriter
+-- асинхронный коммит, отправляется сразу, данные в wal попадают асинхронно
 synchronous_commit = off
-bgwriter_delay = 200ms
-bgwriter_lru_maxpages = 1000
-bgwriter_lru_multiplier = 2.0
 
 -- конфигурация для распараллеливания запросов по ядрам 
 max_worker_processes = 2
