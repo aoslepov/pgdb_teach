@@ -15,28 +15,50 @@ sudo -u postgres pgbench -i test
 -- запускаем тест
 sudo -u postgres pgbench -c 50 -C -j 2 -P 10 -T 60 -M extended test
 
+transaction type: <builtin: TPC-B (sort of)>
+scaling factor: 1
+query mode: extended
+number of clients: 50
+number of threads: 2
+maximum number of tries: 1
+duration: 60 s
+number of transactions actually processed: 14896
+number of failed transactions: 0 (0.000%)
+latency average = 196.134 ms
+latency stddev = 234.118 ms
+average connection time = 5.281 ms
+tps = 204.900910 (including reconnection time)
+
 ```
 
 *Добавляем в conf.d tune.conf*
 ```
+-- конфигурация для cpu 2/ram 4gb
+
 -- определяем максимальное кол-во коннектов и резервные коннекты для суперюзеров
 max_connections = 100
 superuser_reserved_connections = 3
 
 -- конфигурация памяти
 
+-- буфферы разделяемой памяти
 -- shared_buffers - 1/3 RAM
 shared_buffers = '1 GB' 
+
+-- размер памяти для хеш таблиц и сортировки в рамках коннекта
 -- work_mem = (RAM * 0.8 - shared_buffers) / max_connections
 work_mem = '22 MB'
+
 -- память для обслуживания бд (vacuul,analyze, create index...)
 maintenance_work_mem = '320 MB'
--- размер дискового кэша для одного запроса. эффективность индексов
+
+-- размер дискового кэша в рамках коннекта
 -- effective_cache_size = RAM*0.7(0.8)
 effective_cache_size = '3 GB'
 
 -- iops, рекомендация для облачного ssd
 effective_io_concurrency = 200 
+
 -- стоимость рандомного чтения (рекомендовано для ssd)
 random_page_cost = 1.2 
 
@@ -60,12 +82,8 @@ checkpoint_timeout = '15 min'
 checkpoint_completion_target = 0.9
 
 
--- конфигурирование  
+-- отключено сжатие wal
 wal_compression = off
-wal_buffers = -1 -- (3% shared buffers)
-wal_writer_delay = 20ms
-wal_writer_flush_after = 1000MB
-
 
 -- асинхронный коммит и конфигурация bgwriter
 synchronous_commit = off
@@ -87,28 +105,6 @@ autovacuum = off
 ```
 
 
-*original config => *
-```
-progress: 10.0 s, 251.4 tps, lat 189.381 ms stddev 211.726, 0 failed
-progress: 20.0 s, 231.8 tps, lat 198.681 ms stddev 302.740, 0 failed
-progress: 30.0 s, 251.5 tps, lat 204.273 ms stddev 236.208, 0 failed
-progress: 40.0 s, 253.5 tps, lat 190.835 ms stddev 203.560, 0 failed
-progress: 50.0 s, 241.2 tps, lat 204.094 ms stddev 232.240, 0 failed
-progress: 60.0 s, 255.2 tps, lat 189.498 ms stddev 210.390, 0 failed
-transaction type: <builtin: TPC-B (sort of)>
-scaling factor: 1
-query mode: extended
-number of clients: 50
-number of threads: 2
-maximum number of tries: 1
-duration: 60 s
-number of transactions actually processed: 14896
-number of failed transactions: 0 (0.000%)
-latency average = 196.134 ms
-latency stddev = 234.118 ms
-average connection time = 5.281 ms
-tps = 204.900910 (including reconnection time)
-```
 
 *tuned =>*
 ```
@@ -134,7 +130,13 @@ average connection time = 5.233 ms
 tps = 256.613164 (including reconnection times)
 
 
--- 
+-- результаты 
+latency average: 196.134 ms  --> 189.352
+latency stddev:  234.118 ms  --> 204.572
+tps:             204.900910  --> 256.613164
+
+--  при данном конфиге данные тетового прогона полностью умещаются в ram
+--  также минимизировано кол-во обращений к диску
 ```
 
 
