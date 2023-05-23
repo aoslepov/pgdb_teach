@@ -111,3 +111,26 @@ synchronous_commit - синхронный/асинхронный коммит
 ```
 
 https://www.commandprompt.com/blog/the_write_ahead_log/
+
+
+**huge pages**
+
+```
+vmPeak postmaster
+root@pg-teach-01:~# grep ^VmPeak /proc/874/status
+VmPeak:	   81932 kB
+vm.size= VmPeak Postmaster / 1024 /2
+/etc/sysctl.conf ->>
+vm.nr_hugepages = 41
+
+grep ^Huge /proc/meminfo
+
+ALTER SYSTEM SET huge_pages = on;
+
+-- disable transparent pages
+echo 'never' > /sys/kernel/mm/transparent_hugepage/defrag 
+echo 'never' > /sys/kernel/mm/transparent_hugepage/enabled
+```
+https://www.percona.com/blog/why-linux-hugepages-are-super-important-for-database-servers-a-case-with-postgresql/
+https://access.redhat.com/solutions/46111
+https://postgrespro.ru/docs/postgrespro/14/kernel-resources
