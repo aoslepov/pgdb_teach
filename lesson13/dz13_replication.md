@@ -139,7 +139,7 @@ logical=# select * from test2;
  CREATE PUBLICATION pub_test2 FOR TABLE test2;
 ```
 
-**На VM2 подписываемся на публикацию pub_test1 на VM1. Cлот репликации sub_test1 будет создан на VM1*
+**На VM2 подписываемся на публикацию pub_test1 на VM1. Cлот репликации sub_test1 будет создан на VM1**
 
 ```
 CREATE SUBSCRIPTION sub_test2 CONNECTION 'host=10.129.0.8 port=5432 user=repluser password=p@ssw0rd dbname=logical'  PUBLICATION pub_test2 WITH (copy_data = true); 
