@@ -42,7 +42,7 @@ pg_ctlcluster 15 main restart
 
 
 
-** на VM1 добавляем тестовый набор данных**
+**На VM1 добавляем тестовый набор данных**
 ```
 insert into test1
   select generate_series(1,10) as id,
@@ -66,14 +66,14 @@ select * from test1;
 
 ```
 
-**на VM1 создаём публикацию pub_test1 для таблицы test1
+**На VM1 создаём публикацию pub_test1 для таблицы test1**
 
 ```
 CREATE PUBLICATION pub_test1 FOR TABLE test1;
 ```
 
 
-** на VM2 подписываемся на публикацию pub_test1 на VM1 **
+**На VM2 подписываемся на публикацию pub_test1 на VM1**
 *слот sub_test1 будет создан на VM2*
 
 ```
