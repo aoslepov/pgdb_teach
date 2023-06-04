@@ -177,7 +177,7 @@ latest_end_time       | 2023-06-04 21:04:09.569449+00
 
 **Подписываемся. Будут созданы слоты sub_backup_test1 и sub_backup_test2 на соответствующих нодах**
 
-````
+```
 CREATE SUBSCRIPTION sub_backup_test1 CONNECTION 'host=10.129.0.7 port=5432 user=repluser password=p@ssw0rd dbname=logical' PUBLICATION pub_test1 WITH (copy_data = true);
 CREATE SUBSCRIPTION sub_backup_test2  CONNECTION 'host=10.129.0.8 port=5432 user=repluser password=p@ssw0rd dbname=logical'  PUBLICATION pub_test2 WITH (copy_data = true);
 
@@ -185,7 +185,7 @@ CREATE SUBSCRIPTION sub_backup_test2  CONNECTION 'host=10.129.0.8 port=5432 user
 
 
 
-*Проверяем репликацию*
+**Проверяем репликацию**
 ```
 -- на ВМ1
 insert into test1 (id,txt) values (12,'vm1 backup');
