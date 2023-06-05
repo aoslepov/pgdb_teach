@@ -291,7 +291,7 @@ select * from test2;
 
 
 
-root@pg-teach-01:~# sudo -u postgres psql -p 5432 -d replica
+pg-teach-01:~# sudo -u postgres psql -p 5432 -d replica
 replica=# select * from replica_test;
  id |    txt
 ----+------------
@@ -358,10 +358,6 @@ insert into replica_test (id,txt) values (12,'replica');
 
 -- VM2
 sudo -u postgres psql -p 5432 -d replica
-could not change directory to "/root": Permission denied
-psql (15.3 (Ubuntu 15.3-1.pgdg22.04+1))
-Type "help" for help.
-
 replica=# select * from replica_test;
  id |    txt
 ----+------------
