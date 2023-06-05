@@ -226,3 +226,158 @@ select * from test2;
  11 | vm02
  12 | vm2 backup
 ```
+
+>> Задачка под звездочкой: реализовать горячее реплицирование для высокой доступности на 4ВМ. Источником должна выступать ВМ №3. Написать с какими проблемами столкнулись.
+
+
+*Подготавливаем все ноды*
+```
+ -- Добавляем доступы к внутненней подсети для репликации
+
+ echo 'host    all     repluser        10.129.0.0/24            scram-sha-256' >> /etc/postgresql/15/main/pg_hba.conf
+ echo 'host    replication     repluser        10.129.0.0/24            scram-sha-256' >> /etc/postgresql/15/main/pg_hba.conf
+
+ -- устанавливаем уроверь репликации и открываем доступ
+
+ alter system set wal_level to 'replica';
+ alter system set listen_addresses to '*';
+ alter system set hot_standby to 'on';
+
+```
+
+*Подготавливаем мастер*
+```
+ -- VM3
+
+ -- создаём тестовый набор данных
+ create database replica; 
+ create table replica_test as
+  select generate_series(1,10) as id,
+  md5(random()::text)::char(10) as txt;
+
+ -- создаём юзера для реаликации
+ create database replica;
+ CREATE USER repluser REPLICATION PASSWORD 'p@ssw0rd';
+ GRANT CONNECT ON database replica TO repluser;
+ GRANT SELECT ON ALL TABLES IN SCHEMA public TO repluser;
+
+```
+
+*Подготавлиеваем реплики на vm1,vm2,vm4*
+```
+ -- на vm1, vm2, vm4 удаляем останавливаем постгресс и удаляем катаклог с данными
+
+
+ pg_ctlcluster 15 main stop
+ rm -rf /var/lib/postgresql/15/main
+ pg_lsclusters
+ Ver Cluster Port Status Owner     Data directory              Log file
+ 15  main    5432 down   <unknown> /var/lib/postgresql/15/main /var/log/postgresql/postgresql
+```
+
+
+
+ *Для нод vm1 и vm4 создаём реплику из бекапа vm3*
+
+```
+ pg_basebackup -h 10.129.0.6 -p 5432 -U repluser -C -S slot_vm1 -R -D /var/lib/postgresql/15/main
+ pg_basebackup -h 10.129.0.6 -p 5432 -U repluser -C -S slot_vm4 -R -D /var/lib/postgresql/15/main
+
+ chown -R postgres:postgres /var/lib/postgresql/15/main
+ pg_ctlcluster 15 main start
+
+
+
+root@pg-teach-01:~# sudo -u postgres psql -p 5432 -d replica
+replica=# select * from replica_test;
+ id |    txt
+----+------------
+  1 | b57c65fa0b
+  2 | 60a651c798
+  3 | ca427f39f2
+  4 | dea1bb99c9
+  5 | 7636464019
+  6 | 818a155d3c
+  7 | aeebad1451
+  8 | c9112683e2
+  9 | ef78693965
+ 10 | fed0b7dac8
+
+```
+
+*На VM2 создаём реплику с VM1*
+
+```
+-- VM2
+
+pg_basebackup -h 10.129.0.7 -p 5432 -U repluser -C -S slot_vm2 -R -D /var/lib/postgresql/15/main
+chown -R postgres:postgres /var/lib/postgresql/15/main
+pg_ctlcluster 15 main start
+
+pg-teach-02:~# sudo -u postgres psql -p 5432 -d replica
+replica=# select * from replica_test;
+ id |    txt
+----+------------
+  1 | b57c65fa0b
+  2 | 60a651c798
+  3 | ca427f39f2
+  4 | dea1bb99c9
+  5 | 7636464019
+  6 | 818a155d3c
+  7 | aeebad1451
+  8 | c9112683e2
+  9 | ef78693965
+ 10 | fed0b7dac8
+```
+
+*Имитируем переключения нод на другой мастер. Останавливаем постгрес на VM3 и промоутим на VM1*
+
+```
+--VM3
+pg_ctlcluster 15 main stop
+
+-- VM1
+sudo pg_ctlcluster 15 main promote
+
+pg-teach-01:~# sudo pg_ctlcluster 15 main promote
+pg-teach-01:~# pg_lsclusters
+Ver Cluster Port Status Owner    Data directory                 Log file
+15  main    5432 online postgres /var/lib/postgresql/15/main    /var/log/postgresql/postgresql-15-main.log
+
+-- при этом сохраняется репликация VM1->VM2
+
+
+-- VM1
+sudo -u postgres psql -p 5432 -d replica
+insert into replica_test (id,txt) values (12,'replica');
+
+-- VM2
+sudo -u postgres psql -p 5432 -d replica
+could not change directory to "/root": Permission denied
+psql (15.3 (Ubuntu 15.3-1.pgdg22.04+1))
+Type "help" for help.
+
+replica=# select * from replica_test;
+ id |    txt
+----+------------
+  1 | b57c65fa0b
+  2 | 60a651c798
+  3 | ca427f39f2
+  4 | dea1bb99c9
+  5 | 7636464019
+  6 | 818a155d3c
+  7 | aeebad1451
+  8 | c9112683e2
+  9 | ef78693965
+ 10 | fed0b7dac8
+ 12 | replica
+
+
+-- нода VM4 будет ожидать wal с VM3 и останется в статусе реплики
+
+ 2023-06-05 19:56:05.243 UTC [5679] FATAL:  could not connect to the primary server: connection to server at "10.129.0.6", port 5432 failed: Connection refused
+ 		Is the server running on that host and accepting TCP/IP connections?
+ 2023-06-05 19:56:05.243 UTC [5562] LOG:  waiting for WAL to become available at 0/9016628
+```
+
+
