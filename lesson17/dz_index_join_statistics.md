@@ -22,8 +22,9 @@ select
 from generate_series(1, 100000);
 analyze index_test;
 ```
-*Описание EXPLAIN  > EXPLAIN (ANALYZE, BUFFERS) select id from index_test;*
+*Общее описание EXPLAIN*
 ```
+explain (ANALYZE, BUFFERS) select id from index_test;
 Seq Scan on index_test  (cost=0.00...1834.00 rows=100000 width=37) (actual time=0.009..10.034 rows=100000 loops=1)
   Buffers: shared hit=834
 Planning:
@@ -51,7 +52,7 @@ Execution Time: 7.687 ms
 CREATE INDEX CONCURRENTLY "idx_id" ON index_test ( id );
 
 EXPLAIN (ANALYZE, BUFFERS) select id from index_test where id =1;
-
+--
 Index Only Scan using idx_id on index_test  (cost=0.29..4.31 rows=1 width=4) (actual time=0.028..0.031 rows=1 loops=1)
   Index Cond: (id = 1)
   Heap Fetches: 0
@@ -72,6 +73,7 @@ Execution Time: 0.061 ms
 ```
 -- для примера, расмотрим explain поиска по слову в поле category
 explain (ANALYZE, BUFFERS) select * from index_test where category like '%category1%';
+--
 Seq Scan on index_test  (cost=0.00..2084.00 rows=33200 width=37) (actual time=0.019..38.348 rows=33134 loops=1)
   Filter: (category ~~ '%category1%'::text)
   Rows Removed by Filter: 66866
@@ -121,8 +123,7 @@ explain (ANALYZE, BUFFERS)
 select *
 from index_test 
 where category_lexeme @@ to_tsquery('category1');
-
-
+--
 Bitmap Heap Scan on index_test  (cost=313.45..10995.03 rows=33187 width=60) (actual time=8.788..22.990 rows=33134 loops=1)
   Recheck Cond: (category_lexeme @@ to_tsquery('category1'::text))
   Heap Blocks: exact=1137
@@ -152,6 +153,7 @@ create index concurrently idx_index_test_id_30 on index_test(id) where id < 30;
 
 explain
 select * from index_test where id =10;
+--
 Index Scan using idx_index_test_id_30 on index_test  (cost=0.14..8.15 rows=1 width=60)
   Index Cond: (id = 10)
 
@@ -169,7 +171,7 @@ select pg_size_pretty(pg_total_relation_size('idx_index_test_id_30')); --16Kb
 --пример explain без индекса
 explain (ANALYZE, BUFFERS)
 SELECT * FROM index_test WHERE (id || ' ' || category) = '1 category3';
-
+--
 Seq Scan on index_test  (cost=0.00..4220.00 rows=500 width=60) (actual time=0.385..45.740 rows=1 loops=1)
   Filter: ((((id)::text || ' '::text) || category) = '1 category3'::text)
   Rows Removed by Filter: 99999
@@ -182,7 +184,7 @@ create index concurrently idx_id_cat on index_test((id || ' ' || category));
 -- пример explain c индексом
 explain (ANALYZE, BUFFERS)
 SELECT * FROM index_test WHERE (id || ' ' || category) = '1 category3';
-
+--
 Bitmap Heap Scan on index_test  (cost=12.29..1167.19 rows=500 width=60) (actual time=0.032..0.034 rows=1 loops=1)
   Recheck Cond: ((((id)::text || ' '::text) || category) = '1 category3'::text)
   Heap Blocks: exact=1
@@ -202,7 +204,7 @@ Execution Time: 0.063 ms
 ```
 explain (ANALYZE, BUFFERS)
 select * from index_test where id < 100 and category ='category1';
-
+---
 Seq Scan on index_test  (cost=10000000000.00..10000003470.00 rows=33156 width=60) (actual time=91.024..100.815 rows=33102 loops=1)
   Filter: ((id > 100) AND (category = 'category1'::text))
   Rows Removed by Filter: 66898
@@ -217,9 +219,10 @@ Execution Time: 103.197 ms
 -- jit_above_cost>100000 - применяется jit-компиляция
 ```
 
-**Смотрим корреляцию по колонкам
-select attname,correlation  from pg_stats where tablename='index_test';
+*Смотрим корреляцию по колонкам*
 ```
+select attname,correlation  from pg_stats where tablename='index_test';
+---
 id	1.0
 txt	0.82223326
 category	0.32974467
@@ -234,7 +237,7 @@ create index concurrently idx_idcat on index_test(id) include(category);
 
 explain (ANALYZE, BUFFERS)
 select * from index_test where id < 100 and category ='category1';
-
+--
 Index Scan using idx_idcat on index_test  (cost=0.42..11.40 rows=33 width=60) (actual time=0.016..0.057 rows=31 loops=1)
   Index Cond: (id < 100)
   Filter: (category = 'category1'::text)
@@ -246,7 +249,7 @@ Planning:
 Planning Time: 0.290 ms
 Execution Time: 0.079 ms
 
--- применено индексное сканирование с диска
+-- применено индексное сканирование с чтением с диска
 ```
 
 
