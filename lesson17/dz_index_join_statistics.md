@@ -95,7 +95,7 @@ category1	'category1':1
 
 ```
 
-**Поиск будет выглядеть следующим образом**
+**Полнотесковый поиск будет выглядеть следующим образом**
 
 
 ```
@@ -113,7 +113,7 @@ alter table index_test add column category_lexeme tsvector;
 update index_test set category_lexeme = to_tsvector(category);
 ```
 
-**Создаём на поле индекс**
+**Создаём полнотестовый индекс на поле с типом ts_vector**
 ```
 create index concurrently idx_fulltext_category ON index_test USING GIN (category_lexeme);
 
@@ -142,6 +142,7 @@ Execution Time: 27.776 ms
 
 ```
 
+---
 
 > Реализовать индекс на часть таблицы или индекс на поле с функцией
 
