@@ -112,7 +112,7 @@ alter table index_test add column category_lexeme tsvector;
 update index_test set category_lexeme = to_tsvector(category);
 ```
 
-*Создаём полнотестовый индекс на поле с типом ts_vector*
+*Создаём индекс на поле с типом ts_vector*
 ```
 create index concurrently idx_fulltext_category ON index_test USING GIN (category_lexeme);
 
@@ -146,7 +146,7 @@ Execution Time: 27.776 ms
 > Реализовать индекс на часть таблицы или индекс на поле с функцией
 
 
-**Частичный индес с устовием id<30**
+*Частичный индес с устовием id<30*
 ```
 create index concurrently idx_index_test_id_30 on index_test(id) where id < 30;
 
@@ -163,7 +163,8 @@ select pg_size_pretty(pg_total_relation_size('idx_index_test_id_30')); --16Kb
 
  
  
-**Индекс по выражению**
+*Индекс по выражению*
+```
 
 --пример explain без индекса
 explain (ANALYZE, BUFFERS)
@@ -195,7 +196,7 @@ Execution Time: 0.063 ms
 -- используется сканирование по битовой карте
 ```
 
-
+---
 >> Создать индекс на несколько полей
 
 ```
