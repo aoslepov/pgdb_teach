@@ -22,8 +22,7 @@ select
 from generate_series(1, 100000);
 analyze index_test;
 ```
-**Описание EXPLAIN  >**
-*EXPLAIN (ANALYZE, BUFFERS) select id from index_test;*
+*Описание EXPLAIN  > EXPLAIN (ANALYZE, BUFFERS) select id from index_test;*
 ```
 Seq Scan on index_test  (cost=0.00...1834.00 rows=100000 width=37) (actual time=0.009..10.034 rows=100000 loops=1)
   Buffers: shared hit=834
@@ -32,23 +31,21 @@ Planning:
 Planning Time: 0.185 ms
 Execution Time: 7.687 ms
 
-Планировщик выбрал последовательное сканирование (seq scan)
- 
-Cтоимость послучения первой строки 0
 
-shared_hit -кол-во страниц на диске/в памяти, которые необходимо прочитать 
-SELECT relpages FROM pg_class WHERE relname = 'index_test'; -- 834 
+-- Планировщик выбрал последовательное сканирование (seq scan)
+-- Cтоимость послучения первой строки 0
+-- shared_hit -кол-во страниц на диске/в памяти, которые необходимо прочитать 
+-- SELECT relpages FROM pg_class WHERE relname = 'index_test'; -- 834 
 
-Cтоимость послучения первой строки 0
-Cтоимость получения всех сток=shared_hit(834)*seq_page_cost(1)+rows(100000)*cpu_tuple_cost(0.01)=1834
-Ширина полученного массива данных (width) = 37
-Время получения (actual_time) = первой строки (0.008)...всех строк(10.034)
-Строк отдано (rows) = 100000
-Проходов сделано (loops) =1 -- данные поместились в work_mem
+-- Cтоимость послучения первой строки 0
+-- Cтоимость получения всех сток=shared_hit(834)*seq_page_cost(1)+rows(100000)*cpu_tuple_cost(0.01)=1834
+-- Ширина полученного массива данных (width) = 37
+-- Время получения (actual_time) = первой строки (0.008)...всех строк(10.034)
+-- Строк отдано (rows) = 100000
+-- Проходов сделано (loops) =1 -- данные поместились в work_mem
 ```
 
-**Создаём индекс по полю id  >**
-*CREATE INDEX CONCURRENTLY "idx_id" ON index_test ( id );*
+*Создаём индекс по полю id*
 
 ```
 CREATE INDEX CONCURRENTLY "idx_id" ON index_test ( id );
@@ -63,7 +60,6 @@ Planning Time: 0.111 ms
 Execution Time: 0.061 ms
 
 -- используется индексное сканирование без чтения данных с диска (метод index only scan)
--- также данные поместились в work_mem
 ```
 
 ---
@@ -72,19 +68,22 @@ Execution Time: 0.061 ms
 
 
 
-
-**explain (ANALYZE, BUFFERS) select * from index_test where category like '%category1%';**
+*Полнотестовый поиск обычно применяют по полям типа text и json*
 ```
+-- для примера, расмотрим explain поиска по слову в поле category
+explain (ANALYZE, BUFFERS) select * from index_test where category like '%category1%';
 Seq Scan on index_test  (cost=0.00..2084.00 rows=33200 width=37) (actual time=0.019..38.348 rows=33134 loops=1)
   Filter: (category ~~ '%category1%'::text)
   Rows Removed by Filter: 66866
   Buffers: shared hit=834
 Planning Time: 0.086 ms
 Execution Time: 42.107 ms
+
+--выполняется последовательное сканирование
 ```
 
 
-**Для полнотесктового поиска необходимо преобразование значений колонок в лексемы с указанием позиций**
+*Для полнотесктового поиска необходимо преобразование значений колонок в лексемы с указанием позиций*
 ```
 select category, to_tsvector(category) from index_test ;
 category3	'category3':1
@@ -95,7 +94,7 @@ category1	'category1':1
 
 ```
 
-**Полнотесковый поиск будет выглядеть следующим образом**
+*Полнотесковый поиск будет выглядеть следующим образом*
 
 
 ```
@@ -107,13 +106,13 @@ category1	true
 ..
 ```
 
-**Для индекса создаём колонку типа tsvector и заполняем данными**
+*Для индекса создаём колонку типа tsvector и заполняем данными*
 ```
 alter table index_test add column category_lexeme tsvector;
 update index_test set category_lexeme = to_tsvector(category);
 ```
 
-**Создаём полнотестовый индекс на поле с типом ts_vector**
+*Создаём полнотестовый индекс на поле с типом ts_vector*
 ```
 create index concurrently idx_fulltext_category ON index_test USING GIN (category_lexeme);
 
