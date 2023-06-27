@@ -22,7 +22,7 @@ select
 from generate_series(1, 100000);
 analyze index_test;
 ```
-
+**Описание EXPLAIN**
 *EXPLAIN (ANALYZE, BUFFERS) select id from index_test;*
 ```
 Seq Scan on index_test  (cost=0.00...1834.00 rows=100000 width=37) (actual time=0.009..10.034 rows=100000 loops=1)
@@ -47,13 +47,13 @@ Cтоимость получения всех сток=shared_hit(834)*seq_page_
 Проходов сделано (loops) =1 -- данные поместились в work_mem
 ```
 
-**Создаём индекс**
+**Создаём индекс по полю id**
+*CREATE INDEX CONCURRENTLY "idx_id" ON index_test ( id );*
 
 ```
-drop index idx_id;
 CREATE INDEX CONCURRENTLY "idx_id" ON index_test ( id );
 
-```
+EXPLAIN (ANALYZE, BUFFERS) select id from index_test where id =1;
 
 Index Only Scan using idx_id on index_test  (cost=0.29..4.31 rows=1 width=4) (actual time=0.028..0.031 rows=1 loops=1)
   Index Cond: (id = 1)
