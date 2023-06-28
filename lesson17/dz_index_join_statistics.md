@@ -231,7 +231,7 @@ category_lexeme
 -- по category относительно низкая корреляция - можно добавить в общий индекс id,category
 ```
 
-**Создаём индекс, смотрим explain**
+*Создаём индекс по нескольким колонкам, смотрим explain*
 ```
 create index concurrently idx_idcat on index_test(id,category);
 
