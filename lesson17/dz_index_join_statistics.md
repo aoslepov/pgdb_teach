@@ -228,28 +228,41 @@ txt	0.82223326
 category	0.32974467
 category_lexeme	
 -- высокая корреляция по id
--- по category относительно низкая корреляция - можно добавить в include
+-- по category относительно низкая корреляция - можно добавить в общий индекс id,category
 ```
 
 **Создаём индекс, смотрим explain**
 ```
-create index concurrently idx_idcat on index_test(id) include(category);
+create index concurrently idx_idcat on index_test(id,category);
 
 explain (ANALYZE, BUFFERS)
 select * from index_test where id < 100 and category ='category1';
 --
-Index Scan using idx_idcat on index_test  (cost=0.42..11.40 rows=33 width=60) (actual time=0.016..0.057 rows=31 loops=1)
-  Index Cond: (id < 100)
-  Filter: (category = 'category1'::text)
-  Rows Removed by Filter: 68
+Index Scan using idx_idcat on index_test  (cost=0.42..65.74 rows=33 width=60) (actual time=0.029..0.047 rows=31 loops=1)
+  Index Cond: ((id < 100) AND (category = 'category1'::text))
   Buffers: shared hit=5
 Planning:
-  Buffers: shared hit=17 read=1
-  I/O Timings: shared/local read=0.008
-Planning Time: 0.290 ms
-Execution Time: 0.079 ms
+  Buffers: shared hit=4
+Planning Time: 0.214 ms
+Execution Time: 0.077 ms
 
 -- применено индексное сканирование с чтением с диска
 ```
 
+> Придумайте 3 своих метрики на основе показанных представлений
 
+```
+-- мониторинг на рост значения deadlock  - появление новых дедлоков
+select deadlocks  from pg_stat_database where datname = 'postgres';
+
+
+-- мониторинг n_tup_hot_upd для проверки эффективности fillfactor
+select relname, n_tup_hot_upd from pg_stat_all_tables where relname='index_test';
+
+
+-- мониторинг эффективности использования индекса
+-- idx_scan - частота использования индекса
+-- idx_tup_read - индекс используется по битовой карте, либо сканирование по индексу с чтением с диска
+-- idx_tup_fetch - использование метода index_only без обращения на диск
+select relname,indexrelname,idx_scan,idx_tup_read,idx_tup_fetch  from pg_stat_all_indexes where relname='index_test';
+```
