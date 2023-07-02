@@ -1,0 +1,373 @@
+Заходим в базу demo через 
+=> psql -d demo
+В примерах используются таблицы bookings и tickets демонстрационной базы данных. Таблица бронирований содержит записи за три месяца с июня по август 2017 года и имеет следующую структуру:
+demo=# \d bookings
+                        Table "bookings.bookings"
+    Column    |           Type           | Collation | Nullable | Default 
+--------------+--------------------------+-----------+----------+---------
+ book_ref     | character(6)             |           | not null | 
+ book_date    | timestamp with time zone |           | not null | 
+ total_amount | numeric(10,2)            |           | not null | 
+Indexes:
+    "bookings_pkey" PRIMARY KEY, btree (book_ref)
+Referenced by:
+    TABLE "tickets" CONSTRAINT "tickets_book_ref_fkey" FOREIGN KEY (book_ref) REFERENCES bookings(book_ref)
+
+
+demo=# \d tickets
+                        Table "bookings.tickets"
+     Column     |         Type          | Collation | Nullable | Default 
+----------------+-----------------------+-----------+----------+---------
+ ticket_no      | character(13)         |           | not null | 
+ book_ref       | character(6)          |           | not null | 
+ passenger_id   | character varying(20) |           | not null | 
+ passenger_name | text                  |           | not null | 
+ contact_data   | jsonb                 |           |          | 
+Indexes:
+    "tickets_pkey" PRIMARY KEY, btree (ticket_no)
+Foreign-key constraints:
+    "tickets_book_ref_fkey" FOREIGN KEY (book_ref) REFERENCES bookings(book_ref)
+Referenced by:
+    TABLE "ticket_flights" CONSTRAINT "ticket_flights_ticket_no_fkey" FOREIGN KEY (ticket_no) REFERENCES tickets(ticket_no)
+
+В начале попробуем сделать таблицу bookings секционированной по диапазону дат. В таком случае таблица создавалась бы так:
+
+=> CREATE TABLE bookings_range (
+       book_ref     character(6),
+       book_date    timestamptz,
+       total_amount numeric(10,2)
+   ) PARTITION BY RANGE(book_date);
+
+Отдельные секции на каждый месяц:
+
+=> CREATE TABLE bookings_range_201706 PARTITION OF bookings_range 
+       FOR VALUES FROM ('2017-06-01'::timestamptz) TO ('2017-07-01'::timestamptz);
+=> CREATE TABLE bookings_range_201707 PARTITION OF bookings_range 
+       FOR VALUES FROM ('2017-07-01'::timestamptz) TO ('2017-08-01'::timestamptz);
+=> CREATE TABLE bookings_range_201606 PARTITION OF bookings_range 
+       FOR VALUES FROM ('2016-06-01'::timestamptz) TO ('2016-07-01'::timestamptz);
+=> CREATE TABLE bookings_range_201607 PARTITION OF bookings_range 
+       FOR VALUES FROM ('2016-07-01'::timestamptz) TO ('2016-08-01'::timestamptz);
+=> CREATE TABLE bookings_range_201608 PARTITION OF bookings_range 
+       FOR VALUES FROM ('2016-08-01'::timestamptz) TO ('2016-09-01'::timestamptz);
+=> CREATE TABLE bookings_range_201609 PARTITION OF bookings_range 
+       FOR VALUES FROM ('2016-09-01'::timestamptz) TO ('2016-10-01'::timestamptz);
+=>CREATE TABLE bookings_range_201610 PARTITION OF bookings_range 
+       FOR VALUES FROM ('2016-10-01'::timestamptz) TO ('2016-11-01'::timestamptz);
+
+Для указания границ секции можно использовать не только константы, но и выражения, например вызов функции. Значение выражения вычисляется в момент создания секции
+ и сохраняется в системном каталоге:
+
+=> CREATE TABLE bookings_range_201708 PARTITION OF bookings_range 
+       FOR VALUES FROM (to_timestamp('01.08.2017','DD.MM.YYYY')) 
+                    TO (to_timestamp('01.09.2017','DD.MM.YYYY'));
+
+Описание таблицы:
+demo=# \d+ bookings_range
+                                   Partitioned table "bookings.bookings_range"
+    Column    |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
+ book_ref     | character(6)             |           |          |         | extended |              | 
+ book_date    | timestamp with time zone |           |          |         | plain    |              | 
+ total_amount | numeric(10,2)            |           |          |         | main     |              | 
+Partition key: RANGE (book_date)
+Partitions: bookings_range_201606 FOR VALUES FROM ('2016-06-01 00:00:00+03') TO ('2016-07-01 00:00:00+03'),
+            bookings_range_201607 FOR VALUES FROM ('2016-07-01 00:00:00+03') TO ('2016-08-01 00:00:00+03'),
+            bookings_range_201608 FOR VALUES FROM ('2016-08-01 00:00:00+03') TO ('2016-09-01 00:00:00+03'),
+            bookings_range_201609 FOR VALUES FROM ('2016-09-01 00:00:00+03') TO ('2016-10-01 00:00:00+03'),
+            bookings_range_201610 FOR VALUES FROM ('2016-10-01 00:00:00+03') TO ('2016-11-01 00:00:00+03'),
+            bookings_range_201706 FOR VALUES FROM ('2017-06-01 00:00:00+03') TO ('2017-07-01 00:00:00+03'),
+            bookings_range_201707 FOR VALUES FROM ('2017-07-01 00:00:00+03') TO ('2017-08-01 00:00:00+03'),
+            bookings_range_201708 FOR VALUES FROM ('2017-08-01 00:00:00+03') TO ('2017-09-01 00:00:00+03')
+
+			
+Все, этого достаточно. Не нужен триггер на вставку записей, не нужны ограничения CHECK. Параметр CONSTRAINT_EXCLUSION также не нужен, его даже можно отключить
+=> SET constraint_exclusion = OFF;
+
+Заполнение с автоматической раскладкой по секциям:
+
+=> INSERT INTO bookings_range SELECT * FROM bookings;
+INSERT 0 593433
+
+За декларативным синтаксисом по-прежнему скрываются наследуемые таблицы, поэтому распределение строк по секциям можно посмотреть запросом:
+
+=> SELECT tableoid::regclass, count(*) FROM bookings_range GROUP BY tableoid;
+       tableoid        | count  
+-----------------------+--------
+ bookings_range_201607 | 168299
+ bookings_range_201608 | 170729
+ bookings_range_201609 | 166257
+ bookings_range_201610 |  77098
+ bookings_range_201606 |  11050
+(5 rows)
+
+
+А в родительской таблице данных нет:
+
+=> SELECT * FROM ONLY bookings_range;
+ book_ref | book_date | total_amount 
+----------+-----------+--------------
+(0 rows)
+
+Проверим исключение секций в плане запроса:
+
+=> EXPLAIN (COSTS OFF) 
+   SELECT * FROM bookings_range WHERE book_date = '2016-07-01'::timestamptz;
+
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
+ Seq Scan on bookings_range_201607 bookings_range
+   Filter: (book_date = '2016-07-01 00:00:00+03'::timestamp with time zone)
+(2 rows)
+
+В следующем примере вместо константы используется функция to_timestamp с категорией изменчивости STABLE:
+
+=> EXPLAIN (COSTS OFF) 
+   SELECT * FROM bookings_range WHERE book_date = to_timestamp('01.07.2016','DD.MM.YYYY');
+
+demo-#    SELECT * FROM bookings_range WHERE book_date = to_timestamp('01.07.2016','DD.MM.YYYY');
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Gather
+   Workers Planned: 2
+   ->  Parallel Append
+         Subplans Removed: 7
+         ->  Parallel Seq Scan on bookings_range_201607 bookings_range_1
+               Filter: (book_date = to_timestamp('01.07.2016'::text, 'DD.MM.YYYY'::text))
+(6 rows)
+
+Значение функции вычисляется при инициализации плана запроса и часть секций исключается из просмотра (строка Subplans Removed).
+
+Но это работает только для SELECT. При изменении данных исключение секций на основе значений STABLE функций пока не реализовано:
+
+=> EXPLAIN (COSTS OFF) 
+   DELETE FROM bookings_range WHERE book_date = to_timestamp('01.07.2016','DD.MM.YYYY');
+   
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Delete on bookings_range
+   Delete on bookings_range_201606 bookings_range_1
+   Delete on bookings_range_201607 bookings_range_2
+   Delete on bookings_range_201608 bookings_range_3
+   Delete on bookings_range_201609 bookings_range_4
+   Delete on bookings_range_201610 bookings_range_5
+   Delete on bookings_range_201706 bookings_range_6
+   Delete on bookings_range_201707 bookings_range_7
+   Delete on bookings_range_201708 bookings_range_8
+   ->  Seq Scan on bookings_range_201606 bookings_range_1
+         Filter: (book_date = to_timestamp('01.07.2016'::text, 'DD.MM.YYYY'::text))
+   ->  Seq Scan on bookings_range_201607 bookings_range_2
+         Filter: (book_date = to_timestamp('01.07.2016'::text, 'DD.MM.YYYY'::text))
+   ->  Seq Scan on bookings_range_201608 bookings_range_3
+         Filter: (book_date = to_timestamp('01.07.2016'::text, 'DD.MM.YYYY'::text))
+   ->  Seq Scan on bookings_range_201609 bookings_range_4
+         Filter: (book_date = to_timestamp('01.07.2016'::text, 'DD.MM.YYYY'::text))
+   ->  Seq Scan on bookings_range_201610 bookings_range_5
+         Filter: (book_date = to_timestamp('01.07.2016'::text, 'DD.MM.YYYY'::text))
+   ->  Seq Scan on bookings_range_201706 bookings_range_6
+         Filter: (book_date = to_timestamp('01.07.2016'::text, 'DD.MM.YYYY'::text))
+   ->  Seq Scan on bookings_range_201707 bookings_range_7
+         Filter: (book_date = to_timestamp('01.07.2016'::text, 'DD.MM.YYYY'::text))
+   ->  Seq Scan on bookings_range_201708 bookings_range_8
+         Filter: (book_date = to_timestamp('01.07.2016'::text, 'DD.MM.YYYY'::text))
+
+Поэтому следует использовать константы:
+
+=> EXPLAIN (COSTS OFF) 
+   DELETE FROM bookings_range WHERE book_date = '2016-07-01'::timestamptz;
+                                       QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Delete on bookings_range
+   Delete on bookings_range_201607 bookings_range_1
+   ->  Seq Scan on bookings_range_201607 bookings_range_1
+         Filter: (book_date = '2016-07-01 00:00:00+03'::timestamp with time zone)
+(4 rows)
+
+Для выполнения следующего запроса требуется сортировка результатов полученных из разных секций. Поэтому в плане запроса мы видим узел SORT и высокую начальную стоимость плана:
+
+=>EXPLAIN SELECT * FROM bookings_range ORDER BY book_date;
+                                                QUERY PLAN                      
+                           
+--------------------------------------------------------------------------------
+---------------------------
+ Sort  (cost=69983.40..71474.64 rows=596493 width=21)
+   Sort Key: bookings_range.book_date
+   ->  Append  (cost=0.00..12761.40 rows=596493 width=21)
+         ->  Seq Scan on bookings_range_201606 bookings_range_1  (cost=0.00..181
+.50 rows=11050 width=21)
+         ->  Seq Scan on bookings_range_201607 bookings_range_2  (cost=0.00..275
+5.99 rows=168299 width=21)
+         ->  Seq Scan on bookings_range_201608 bookings_range_3  (cost=0.00..279
+5.29 rows=170729 width=21)
+         ->  Seq Scan on bookings_range_201609 bookings_range_4  (cost=0.00..272
+2.57 rows=166257 width=21)
+         ->  Seq Scan on bookings_range_201610 bookings_range_5  (cost=0.00..126
+2.98 rows=77098 width=21)
+         ->  Seq Scan on bookings_range_201706 bookings_range_6  (cost=0.00..20.
+20 rows=1020 width=52)
+         ->  Seq Scan on bookings_range_201707 bookings_range_7  (cost=0.00..20.
+20 rows=1020 width=52)
+         ->  Seq Scan on bookings_range_201708 bookings_range_8  (cost=0.00..20.
+20 rows=1020 width=52)
+Создадим индекс по book_date. Вместо одного глобального индекса, создаются индексы в каждой секции:
+
+=> CREATE INDEX book_date_idx ON bookings_range(book_date);
+
+=>\di bookings_range*
+                                     List of relations
+  Schema  |                Name                 | Type  |  Owner   |         Table         
+----------+-------------------------------------+-------+----------+-----------------------
+ bookings | bookings_range_201606_book_date_idx | index | postgres | bookings_range_201606
+ bookings | bookings_range_201607_book_date_idx | index | postgres | bookings_range_201607
+ bookings | bookings_range_201608_book_date_idx | index | postgres | bookings_range_201608
+ bookings | bookings_range_201609_book_date_idx | index | postgres | bookings_range_201609
+ bookings | bookings_range_201610_book_date_idx | index | postgres | bookings_range_201610
+ bookings | bookings_range_201706_book_date_idx | index | postgres | bookings_range_201706
+ bookings | bookings_range_201707_book_date_idx | index | postgres | bookings_range_201707
+ bookings | bookings_range_201708_book_date_idx | index | postgres | bookings_range_201708
+
+Предыдущий запрос с сортировкой теперь может использовать индекс по ключу секционирования и выдавать результат из разных секций сразу в отсортированном виде. Узел SORT не нужен и для выдачи первой строки результата требуются минимальные затраты:
+
+=> EXPLAIN SELECT * FROM bookings_range ORDER BY book_date;
+demo=#  EXPLAIN SELECT * FROM bookings_range ORDER BY book_date;
+                                                                   QUERY PLAN                                                                    
+-------------------------------------------------------------------------------------------------------------------------------------------------
+ Append  (cost=1.91..31055.51 rows=596493 width=21)
+   ->  Index Scan using bookings_range_201606_book_date_idx on bookings_range_201606 bookings_range_1  (cost=0.29..553.99 rows=11050 width=21)
+   ->  Index Scan using bookings_range_201607_book_date_idx on bookings_range_201607 bookings_range_2  (cost=0.29..7908.71 rows=168299 width=21)
+   ->  Index Scan using bookings_range_201608_book_date_idx on bookings_range_201608 bookings_range_3  (cost=0.29..8017.13 rows=170729 width=21)
+   ->  Index Scan using bookings_range_201609_book_date_idx on bookings_range_201609 bookings_range_4  (cost=0.29..7806.13 rows=166257 width=21)
+   ->  Index Scan using bookings_range_201610_book_date_idx on bookings_range_201610 bookings_range_5  (cost=0.29..3608.73 rows=77098 width=21)
+   ->  Index Scan using bookings_range_201706_book_date_idx on bookings_range_201706 bookings_range_6  (cost=0.15..59.45 rows=1020 width=52)
+   ->  Index Scan using bookings_range_201707_book_date_idx on bookings_range_201707 bookings_range_7  (cost=0.15..59.45 rows=1020 width=52)
+   ->  Index Scan using bookings_range_201708_book_date_idx on bookings_range_201708 bookings_range_8  (cost=0.15..59.45 rows=1020 width=52)
+(9 rows)
+
+Созданные таким образом индексы на секциях поддерживаются централизованно. При добавлении новой секции на ней автоматически будет создан индекс. А удалить индекс только одной секции нельзя:
+
+=> DROP INDEX bookings_range_201706_book_date_idx;
+2021-10-14 09:44:02.367 MSK [2481] ERROR:  cannot drop index bookings_range_201706_book_date_idx because index book_date_idx requires it
+2021-10-14 09:44:02.367 MSK [2481] HINT:  You can drop index book_date_idx instead.
+2021-10-14 09:44:02.367 MSK [2481] STATEMENT:  DROP INDEX bookings_range_201706_book_date_idx;
+ERROR:  cannot drop index bookings_range_201706_book_date_idx because index book_date_idx requires it
+HINT:  You can drop index book_date_idx instead.
+
+Только целиком:
+
+=> DROP INDEX book_date_idx;
+
+
+
+При создании индекса на секционированной таблице нельзя указать CONCURRENTLY.
+
+Но можно поступить следующим образом. Сначала создаем индекс только на основной таблице, он получит статус invalid:
+
+=> CREATE INDEX book_date_idx ON ONLY bookings_range(book_date);
+
+=> SELECT indisvalid FROM pg_index WHERE indexrelid::regclass::text = 'book_date_idx';
+ indisvalid 
+------------
+ f
+(1 row)
+
+Затем создаем индексы на всех секциях с опцией CONCURRENTLY:
+
+=> CREATE INDEX CONCURRENTLY book_date_201706_idx ON bookings_range_201706 (book_date);
+=> CREATE INDEX CONCURRENTLY book_date_201707_idx ON bookings_range_201707 (book_date);
+=> CREATE INDEX CONCURRENTLY book_date_201708_idx ON bookings_range_201708 (book_date);
+=> CREATE INDEX CONCURRENTLY book_date_201606_idx ON bookings_range_201606 (book_date);
+=> CREATE INDEX CONCURRENTLY book_date_201607_idx ON bookings_range_201607 (book_date);
+=> CREATE INDEX CONCURRENTLY book_date_201608_idx ON bookings_range_201608 (book_date);
+=> CREATE INDEX CONCURRENTLY book_date_201609_idx ON bookings_range_201609 (book_date);
+=> CREATE INDEX CONCURRENTLY book_date_201610_idx ON bookings_range_201610 (book_date);
+Теперь подключаем локальные индексы к глобальному:
+
+=> ALTER INDEX book_date_idx ATTACH PARTITION book_date_201706_idx;
+=> ALTER INDEX book_date_idx ATTACH PARTITION book_date_201707_idx;
+=> ALTER INDEX book_date_idx ATTACH PARTITION book_date_201708_idx;
+=> ALTER INDEX book_date_idx ATTACH PARTITION book_date_201606_idx;
+=> ALTER INDEX book_date_idx ATTACH PARTITION book_date_201607_idx;
+=> ALTER INDEX book_date_idx ATTACH PARTITION book_date_201608_idx;
+=> ALTER INDEX book_date_idx ATTACH PARTITION book_date_201609_idx;
+=> ALTER INDEX book_date_idx ATTACH PARTITION book_date_201610_idx;
+
+Это похоже на подключение таблиц-секций, на которое мы посмотрим чуть позже. Как только все индексные секции будут подключены, основной индекс изменит свой статус:
+
+=> SELECT indisvalid FROM pg_index WHERE indexrelid::regclass::text = 'book_date_idx';
+ indisvalid 
+------------
+ t
+(1 row)
+
+Подключение и отключение секций
+
+Автоматическое создание секций не предусмотрено. Поэтому их нужно создавать заранее, до того как в таблицу начнут добавляться записи с новыми значениями ключа секционирования.
+
+Будем создавать новую секцию во время работы других транзакций с таблицей, заодно посмотрим на блокировки:
+=> BEGIN;
+=> SELECT count(*) FROM bookings_range
+    WHERE book_date = to_timestamp('01.07.2016','DD.MM.YYYY');
+ count 
+-------
+     2
+(1 row)
+
+=> SELECT relation::regclass::text, mode FROM pg_locks 
+    WHERE pid = pg_backend_pid() AND relation::regclass::text LIKE 'bookings%';
+
+              relation               |      mode       
+-------------------------------------+-----------------
+ bookings_range_201708               | AccessShareLock
+ bookings_range_201707_book_date_idx | AccessShareLock
+ bookings_range_201707               | AccessShareLock
+ bookings_range_201706_book_date_idx | AccessShareLock
+ bookings_range_201706               | AccessShareLock
+ bookings_range_201610_book_date_idx | AccessShareLock
+ bookings_range_201610               | AccessShareLock
+ bookings_range_201609_book_date_idx | AccessShareLock
+ bookings_range_201609               | AccessShareLock
+ bookings_range_201608_book_date_idx | AccessShareLock
+ bookings_range_201608               | AccessShareLock
+ bookings_range_201607_book_date_idx | AccessShareLock
+ bookings_range_201607               | AccessShareLock
+ bookings_range_201606_book_date_idx | AccessShareLock
+ bookings_range_201606               | AccessShareLock
+ bookings_range                      | AccessShareLock
+ bookings_range_201708_book_date_idx | AccessShareLock
+ 
+Блокировка AccessShareLock накладывается на основную таблицу, все секции и индексы в начале выполнения оператора. 
+Вычисление функции to_timestamp и исключение секций происходит позже.
+Если бы вместо функции использовалась константа, то блокировалась бы только основная таблица и секция bookings_range_201707.
+Поэтому при возможности указывать в запросе константы — это следует делать, иначе количество строк в pg_locks будет увеличиваться 
+пропорционально количеству секций, что может привести к необходимости увеличения max_locks_per_transaction.
+
+Не завершая предыдущую транзакцию, создадим следующую секцию для сентября в новом сеансе:
+
+    || => CREATE TABLE bookings_range_201709 (LIKE bookings_range);
+    || => BEGIN;
+    || => ALTER TABLE bookings_range ATTACH PARTITION bookings_range_201709
+          FOR VALUES FROM ('2017-09-01'::timestamptz) TO ('2017-10-01'::timestamptz);
+    || => SELECT relation::regclass::text, mode FROM pg_locks 
+          WHERE pid = pg_backend_pid() AND relation::regclass::text LIKE 'bookings%';
+              relation               |           mode           
+-------------------------------------+--------------------------
+ bookings_range_201709_book_date_idx | AccessExclusiveLock
+ bookings_range                      | ShareUpdateExclusiveLock
+ bookings_range_201709               | ShareLock
+ bookings_range_201709               | AccessExclusiveLock
+(4 rows)
+
+При создании новой секции на основную таблицу накладывается блокировка ShareUpdateExclusiveLock, совместимая с AccessShareLock.
+Поэтому операции добавления секций не конфликтуют с запросами к секционированной таблице.
+
+далее выполняем коммит в обоих сеансах:
+=> COMMIT;
+
+    || => COMMIT;
+
+Отключение секций выполняется командой ALTER TABLE… DETACH PARTITION. Сама секция не удаляется, а становится самостоятельной таблицей. Из неё можно выгрузить данные,
+её можно удалить, а при необходимости подключить заново(ATTACH PARTITION).
+
+Другой вариант отключения — удалить секцию командой DROP TABLE.
+
+К сожалению оба варианта, DROP TABLE и DETACH PARTITION, используют блокировку AccessExclusiveLock на основную таблицу.
