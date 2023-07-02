@@ -1,13 +1,13 @@
-##Домашнее задание. Секционирование таблицы
+## Домашнее задание. Секционирование таблицы
 
-###Цель: научиться секционировать таблицы.
+### Цель: научиться секционировать таблицы.
 
 
 
-Смотрим распределение по неделям по дате отправления
+*Смотрим распределение по неделям по дате отправления*
 
 ```
-select EXTRACT('DAY' FROM scheduled_departure) as scd, count(*)  from flights group by scd order by scd; 
+select EXTRACT('WEEK' FROM scheduled_departure) as scd, count(*)  from flights group by scd order by scd; 
 20	2717
 21	3798
 22	3798
@@ -28,14 +28,14 @@ select EXTRACT('DAY' FROM scheduled_departure) as scd, count(*)  from flights gr
 37	2179
 ```
 
-Смотрим диапазон дат
+*Смотрим диапазон дат*
 
 ```
 select min(scheduled_departure) from flights; -- 2017-05-17 02:00:00.000 +0300
 select max(scheduled_departure) from flights; -- 2017-09-14 20:55:00.000 +0300
 ```
 
-Будем партицировать по времени отправления (scheduled_departure) с интервалом неделя при помощи timescaledb
+*Будем партицировать по времени отправления (scheduled_departure) с интервалом в неделю при помощи timescaledb*
 ```
 -- ставим timescaledb из пакетов
 
@@ -54,9 +54,9 @@ systemctl restart postgresql
 ```
 
 
-Подготавлиевм таблицу к партицированию
+*Подготавлиевм таблицу к партицированию*
 ```
--- создаём таблицу flights_part с переносом всех констрейтов/индексов с flights
+-- создаём таблицу flights_part с переносом всех констрейтов/индексов из flights
 create table flights_part (like flights including all);
 
 -- необходимо чтобы в первичный ключ входили поля для партицирования
@@ -66,7 +66,7 @@ alter table flights_part add primary key (flight_id,scheduled_departure);
 
 ```
 
-Создаём гипертаблицу с партицированием по неделе
+*Создаём гипертаблицу с партицированием по неделе*
 
 ```
 SELECT create_hypertable(
@@ -75,7 +75,7 @@ SELECT create_hypertable(
 );
 ```
 
-Переносим данные и смотрим чанки
+*Переносим данные и смотрим чанки*
 ```
 insert into flights_part select * from flights;
 
@@ -104,7 +104,7 @@ _timescaledb_internal._hyper_7_140_chunk
 _timescaledb_internal._hyper_7_141_chunk
 ```
 
-Сморрим корректность работы партицированной таблицы
+*Сморим корректность работы партицированной таблицы*
 
 ```
 explain select flight_id,scheduled_departure from flights_part where scheduled_departure < '2017-06-01';
