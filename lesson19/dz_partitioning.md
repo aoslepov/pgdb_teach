@@ -4,25 +4,22 @@
 
 >> Описание/Пошаговая инструкция выполнения домашнего задания: Секционировать большую таблицу из демо базы flights
 
-*Смотрим распределение по неделям по дате отправления*
+*Смотрим распределение по месяцам по дате отправления*
 
 ```
-select EXTRACT('WEEK' FROM scheduled_departure) as scd, count(*)  from flights group by scd order by scd; 
-1	3798
-2	3798
-3	3798
-4	3798
-5	3798
-6	3798
-7	3798
-8	3798
-9	3798
-10	3798
-11	3798
-12	3798
-13	3798
-14	3798
-..
+select EXTRACT('month' FROM scheduled_departure) as scd, count(*)  from flights group by scd order by scd;
+1	16831
+2	15192
+3	16783
+4	16318
+5	16821
+6	16235
+7	16854
+8	26060
+9	23831
+10	16854
+11	16285
+12	16803
 ```
 
 *Смотрим диапазон дат*
@@ -32,7 +29,7 @@ select min(scheduled_departure) from flights; -- 2016-08-15 02:45:00.000 +0300
 select max(scheduled_departure) from flights; -- 2017-09-14 20:55:00.000 +0300
 ```
 
-*Будем партицировать по времени отправления (scheduled_departure) с интервалом в неделю при помощи timescaledb*
+*Будем партицировать по времени отправления (scheduled_departure) с интервалом в месяц при помощи timescaledb*
 ```
 -- ставим timescaledb из пакетов
 
@@ -62,14 +59,14 @@ alter table flights_part add primary key (flight_id,scheduled_departure);
 
 ```
 
-*Добавляем расширение timescaledb, создаём гипертаблицу с партицированием по неделе*
+*Добавляем расширение timescaledb, создаём гипертаблицу с партицированием по месяцам*
 
 ```
 create extension timescaledb;
 
 SELECT create_hypertable(
   'flights_part', 'scheduled_departure',
-  chunk_time_interval => INTERVAL '1 week'
+  chunk_time_interval => INTERVAL '1 month'
 );
 ```
 
