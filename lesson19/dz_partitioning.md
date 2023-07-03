@@ -8,6 +8,7 @@
 
 ```
 select EXTRACT('month' FROM scheduled_departure) as scd, count(*)  from flights group by scd order by scd;
+--
 1	16831
 2	15192
 3	16783
@@ -76,27 +77,32 @@ insert into flights_part select * from flights;
 vacuum analyze flights_part;
 
 SELECT show_chunks('flights_part');
-
-_timescaledb_internal._hyper_7_123_chunk
-_timescaledb_internal._hyper_7_124_chunk
-_timescaledb_internal._hyper_7_125_chunk
-_timescaledb_internal._hyper_7_126_chunk
-_timescaledb_internal._hyper_7_127_chunk
-_timescaledb_internal._hyper_7_128_chunk
-..
+--
+_timescaledb_internal._hyper_2_59_chunk
+_timescaledb_internal._hyper_2_60_chunk
+_timescaledb_internal._hyper_2_61_chunk
+_timescaledb_internal._hyper_2_62_chunk
+_timescaledb_internal._hyper_2_63_chunk
+_timescaledb_internal._hyper_2_64_chunk
+_timescaledb_internal._hyper_2_65_chunk
+_timescaledb_internal._hyper_2_66_chunk
+_timescaledb_internal._hyper_2_67_chunk
+_timescaledb_internal._hyper_2_68_chunk
+_timescaledb_internal._hyper_2_69_chunk
+_timescaledb_internal._hyper_2_70_chunk
+_timescaledb_internal._hyper_2_71_chunk
+_timescaledb_internal._hyper_2_72_chunk
 ```
 
 *Сморим корректность работы партицированной таблицы*
 
 ```
 explain select flight_id,scheduled_departure from flights_part where scheduled_departure < '2016-09-01';
-
-Append  (cost=0.28..255.68 rows=9223 width=12)
-  ->  Index Only Scan using "27_54_flights_part_pkey" on _hyper_1_27_chunk  (cost=0.28..85.42 rows=3795 width=12)
+--
+Append  (cost=0.29..410.89 rows=9214 width=12)
+  ->  Index Only Scan using "65_130_flights_part_pkey" on _hyper_2_65_chunk  (cost=0.29..221.60 rows=2743 width=12)
         Index Cond: (scheduled_departure < '2016-09-01 00:00:00+03'::timestamp with time zone)
-  ->  Index Only Scan using "42_84_flights_part_pkey" on _hyper_1_42_chunk  (cost=0.28..85.45 rows=3798 width=12)
-        Index Cond: (scheduled_departure < '2016-09-01 00:00:00+03'::timestamp with time zone)
-  ->  Index Only Scan using "55_110_flights_part_pkey" on _hyper_1_55_chunk  (cost=0.28..38.70 rows=1630 width=12)
+  ->  Index Only Scan using "72_144_flights_part_pkey" on _hyper_2_72_chunk  (cost=0.28..143.22 rows=6471 width=12)
         Index Cond: (scheduled_departure < '2016-09-01 00:00:00+03'::timestamp with time zone)
 ```
 
