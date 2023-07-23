@@ -98,7 +98,7 @@ users:
 
 Создание плана для будуших вм
 
-[https://github.com/aoslepov/pgdb_teach/blob/main/project/yc/main.tf](main.tf)
+<https://github.com/aoslepov/pgdb_teach/blob/main/project/yc/main.tf>
 
 
 
