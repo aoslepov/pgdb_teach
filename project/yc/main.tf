@@ -53,3 +53,89 @@ output "internal_ip_address_vm_1" {
 output "external_ip_address_vm_1" {
   value = yandex_compute_instance.vm-1.network_interface.0.nat_ip_address
 }
+
+
+
+
+resource "yandex_compute_instance" "vm-2" {
+  name     = "pg-teach-02"
+  hostname = "pg-teach-02"
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8ebb4u1u8mc6fheog1"
+      size     = "10"
+      type     = "network-ssd"
+    }
+  }
+
+
+
+  network_interface {
+    subnet_id = "e9b76q9b573881psop2r"
+    nat = true
+  }
+
+  metadata = {
+    user-data = "${file("/home/aslepov/aslepov_repo/pgdb_teach/project/yc/access/meta.txt")}"
+  }
+
+
+}
+
+
+output "internal_ip_address_vm_2" {
+  value = yandex_compute_instance.vm-2.network_interface.0.ip_address
+}
+
+
+output "external_ip_address_vm_2" {
+  value = yandex_compute_instance.vm-2.network_interface.0.nat_ip_address
+}
+
+
+resource "yandex_compute_instance" "vm-3" {
+  name     = "pg-teach-03"
+  hostname = "pg-teach-03"
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8ebb4u1u8mc6fheog1"
+      size     = "10"
+      type     = "network-ssd"
+    }
+  }
+
+
+
+  network_interface {
+    subnet_id = "e9b76q9b573881psop2r"
+    nat = true
+  }
+
+  metadata = {
+    user-data = "${file("/home/aslepov/aslepov_repo/pgdb_teach/project/yc/access/meta.txt")}"
+  }
+
+
+}
+
+
+output "internal_ip_address_vm_3" {
+  value = yandex_compute_instance.vm-3.network_interface.0.ip_address
+}
+
+
+output "external_ip_address_vm_3" {
+  value = yandex_compute_instance.vm-3.network_interface.0.nat_ip_address
+}
