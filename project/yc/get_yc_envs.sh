@@ -13,4 +13,4 @@ export YC_FOLDER_ID=$(yc config get folder-id)
 
 terraform plan
 #terraform apply
-#terraform destroy
+terraform destroy
