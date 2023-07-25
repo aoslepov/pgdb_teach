@@ -1,0 +1,50 @@
+---
+
+- name: patroni | packages
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+     - "python3-pip"
+     - "libpq-dev"
+     - "gcc"
+     - "python3-dev"
+     - "python3-psycopg2"
+
+
+- name: pip psycopg2+patroni
+  ansible.builtin.pip:
+    name:
+      - "psycopg2-binary"
+      - "patroni[consul]"
+
+
+
+- name: patroni dir
+  ansible.builtin.file:
+    path: "/data/patroni"
+    state: directory
+    owner: postgres
+    group: postgres
+
+
+
+- name: patroni | service
+  ansible.builtin.copy:
+    src: "patroni.service"
+    dest: "/etc/systemd/system/patroni.service"
+
+
+
+
+- name: patroni | config
+  ansible.builtin.template:
+    src: "patroni.yml"
+    dest: "/etc/patroni.yml"
+
+
+- name: patroni enable service
+  systemd: name="patroni" daemon_reload=yes enabled=yes
+
+- name: stop and disable postgresql
+  systemd: name="postgresql.service" state=stopped enabled=no
+

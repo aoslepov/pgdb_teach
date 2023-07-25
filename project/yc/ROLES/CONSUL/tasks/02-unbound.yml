@@ -1,0 +1,86 @@
+---
+
+
+- name: unbound install packages
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+     - "unbound"
+     - "unzip"
+     - "mc"
+     - "jq"
+
+
+- name: download consul
+  ansible.builtin.shell:
+    cmd: echo -n 'IGNORE_RESOLVCONF=yes' > /etc/default/dnsmasq
+
+
+
+- name: unbound disable resolvconf use
+  ansible.builtin.shell:
+    cmd: mkdir -p /etc/resolvconf/resolv.conf.d/
+
+
+- name: unbound | add nameserver dns srv
+  ansible.builtin.lineinfile:
+    state: present
+    dest: /etc/resolv.conf
+    regexp: "^nameserver 127.0.0.53"
+    line: "#nameserver 127.0.0.53"
+    create: yes
+
+
+- name: unbound | add nameserver consul
+  ansible.builtin.lineinfile:
+    state: present
+    dest: /etc/resolv.conf
+    regexp: "^nameserver 127.0.0.1"
+    line: "nameserver 127.0.0.1"
+    create: yes
+
+
+
+- name: unbound | add nameserver dns srv
+  ansible.builtin.lineinfile:
+    state: present
+    dest: /etc/resolv.conf
+    regexp: "^nameserver 8.8.8.8"
+    line: "nameserver 8.8.8.8"
+    create: yes
+
+
+
+
+
+
+- name: unbound copy config
+  ansible.builtin.copy:
+    src: "unbound/{{item}}"
+    dest: "/etc/unbound/{{item}}"
+  loop:
+   - "unbound.conf"
+   - "unbound.conf.d/consul.conf"
+
+
+- name: stop dnsmasq 
+  ansible.builtin.service:
+    name: dnsmasq
+    state: stopped
+  ignore_errors: yes
+
+
+- name: stop systemd-resolved
+  ansible.builtin.service:
+    name: systemd-resolved
+    state: stopped
+  ignore_errors: yes
+
+
+
+- name: unbound start 
+  ansible.builtin.service:
+    name: unbound
+    state: restarted
+
+

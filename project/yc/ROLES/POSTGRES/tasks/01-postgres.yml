@@ -1,0 +1,25 @@
+
+- name: postgres | add source
+  ansible.builtin.shell:
+    cmd: sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+
+- name: postgres | add source
+  ansible.builtin.shell:
+    cmd: wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+
+
+- name: postgres | install postgres + pgbouncer
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+     - "postgresql-15"
+     - "pgbouncer"
+
+- name: pgbouncer | config directory
+  ansible.builtin.file:
+    path: "/etc/pgbouncer/"
+    state: directory
+    owner: postgres
+    group: postgres
+

@@ -1,0 +1,12 @@
+{
+   "node_name": "{{ ansible_hostname }}",
+   "encrypt": "{{ consul_encrypt }}",
+   "retry_join": [{{ consul_server_list }}],
+   "rejoin_after_leave": true,
+   "datacenter": "dc",
+   "data_dir": "/var/consul",
+   "log_level": "INFO",
+   "client_addr": "0.0.0.0",
+   "bind_addr": "{{ ansible_default_ipv4.address }}"
+}
+

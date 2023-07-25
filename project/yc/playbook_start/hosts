@@ -1,0 +1,7 @@
+[pg_teach]
+pg-teach-01 ansible_host=158.160.101.160
+pg-teach-02 ansible_host=158.160.97.246
+pg-teach-03 ansible_host=158.160.103.227
+[pg_teach:vars]
+consul_srv_config=yes
+

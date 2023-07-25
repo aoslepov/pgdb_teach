@@ -1,0 +1,94 @@
+
+
+- debug: msg="{{ hostvars[item]["ansible_default_ipv4"]["address"] }}     {{ hostvars[item]["ansible_hostname"]}}"
+  with_items:  '{{ groups["pg_teach"] }}'
+
+
+- name: hosts | add consul internal ips
+  ansible.builtin.lineinfile:
+    state: present
+    dest: /etc/hosts
+    regexp: '{{ hostvars[item]["ansible_default_ipv4"]["address"] }}     {{ hostvars[item]["ansible_hostname"]}}'
+    line: '{{ hostvars[item]["ansible_default_ipv4"]["address"] }}     {{ hostvars[item]["ansible_hostname"]}}'
+    create: yes
+  with_items:  '{{ groups["pg_teach"] }}'
+
+
+
+- name: create group consul
+  ansible.builtin.group:
+    name: consul
+    state: present
+
+
+
+- name: create consul users
+  ansible.builtin.user:
+    name: consul
+    shell: /bin/false
+    groups: consul
+    append: no
+    password: "$y$j9T$lXUEtuHIWUMKoYt6JebHT1$zikw9hpSqtZNM.RIYl5Sa..mySiVKjsxNMUCFdpL3z0"
+    update_password: always
+    create_home: no
+
+
+
+- name: create consul dirs
+  ansible.builtin.file:
+    path: "{{item}}"
+    state: directory
+    owner: consul
+    group: consul
+  loop:
+   - "/var/consul"
+   - "/etc/consul.d"
+   - "/etc/consul.d/scripts"
+
+
+
+- name: download consul
+  ansible.builtin.shell:
+    cmd: sudo wget -qO- https://hashicorp-releases.yandexcloud.net/consul/1.16.0/consul_1.16.0_linux_amd64.zip | gunzip - > /usr/local/bin/consul
+
+- name: consul permissions
+  ansible.builtin.file:
+    path: /usr/local/bin/consul
+    owner: consul
+    group: consul
+    mode: '0774'
+
+
+- name: consul templating configs
+  ansible.builtin.template:
+    src: 'consul.json'
+    dest: '/etc/consul.d/consul.json'
+    owner: consul
+    group: consul
+
+
+- name: consul templating config server
+  ansible.builtin.template:
+    src: 'consul_server.json'
+    dest: '/etc/consul.d/consul_server.json'
+    owner: consul
+    group: consul
+  when: consul_srv_config is defined
+
+
+- name: consul templating service
+  template:
+    src: "consul.service"
+    dest: "/etc/systemd/system/consul.service"
+
+
+- name: consul enable and start service
+  systemd: name="consul" daemon_reload=yes enabled=yes
+
+
+
+
+- name: consul validate config
+  ansible.builtin.shell:
+    cmd: "consul validate /etc/consul.d"
+  notify: consul_restart

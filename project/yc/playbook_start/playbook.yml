@@ -1,0 +1,9 @@
+- hosts: pg_teach
+  become: yes
+  become_method: sudo
+  become_user: root
+#  gather_facts: no
+#  serial: 1
+  roles:
+#    - ../ROLES/CONSUL
+    - ../ROLES/POSTGRES

@@ -1,0 +1,7 @@
+- debug: msg="total RAM is {{ ansible_memory_mb.real.total /4 }}MB"
+
+- debug: msg="cpu {{ ansible_processor_cores }}"
+
+
+- debug: msg="workmem {{ ((ansible_memory_mb.real.total*0.8)-(ansible_memory_mb.real.total/4))/100 }}MB"
+
