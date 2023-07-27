@@ -1,0 +1,9 @@
+{
+      "id": "check_{{ansible_hostname}}_master",
+      "name": "check_pg_{{ansible_hostname}}_master",
+      "service_id": "{{ansible_hostname}}-master",
+      "shell": "/bin/sh",
+      "args": ["/etc/consul.d/scripts/patroni_status.sh", "master"],
+      "interval": "11s",
+      "timeout": "5s"
+}

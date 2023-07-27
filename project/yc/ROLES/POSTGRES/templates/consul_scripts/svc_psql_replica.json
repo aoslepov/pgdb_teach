@@ -1,0 +1,6 @@
+{
+    "id": "{{ansible_hostname}}-replica",
+    "name": "pg-teach-replica",
+    "tags": ["postgres_replica"],
+    "port": 5432
+}

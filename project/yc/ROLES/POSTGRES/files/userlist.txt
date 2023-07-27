@@ -1,0 +1,3 @@
+"postgres" "SCRAM-SHA-256$4096:972+VA6wnAJH3fO1+LSxAQ==$v8Oy6lSZbvVdZo+WGy+Tr8Rp0pkfWw72HgdTdlW/3z0=:avg1V0mecmBtpdhriKizq4nMqJjzzyZ52+XR/Mz0+5Q="
+"repl" "SCRAM-SHA-256$4096:nC8yjcOtqGD79ofEjWBUuw==$eVd/kl4WcoJUvRgH1POMfBVlXSnymJJiP2y//SDv10c=:hbE6ZQmE7azkDymLnaRIr8j6Ef5UxVXuGmmr4Ra6j7I="
+"admin" "SCRAM-SHA-256$4096:fENWWy2D88U88q7xkZDKig==$b3KJ2+22zc+tUP9BrrcNXxtMi7fNejoqs9M951f+NWY=:TcFZcMDkwCPJkk9Rb3us5SlPVAc10gk4Wi4ath0t1JE="

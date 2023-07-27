@@ -66,10 +66,10 @@ postgresql:
     parameters:
         unix_socket_directories: '.'
         max_connections: '100'
-	random_page_cost: '1.1'
+        random_page_cost: '1.1'
         effective_io_concurrency: 200
         max_worker_processes: {{ ansible_processor_cores }}
-        max_parallel_maintenance_workers: {{ ansible_processor_cores/2  }}
+        max_parallel_maintenance_workers: {{ ansible_processor_cores  }}
         max_parallel_workers_per_gather: {{ ansible_processor_cores }}
         max_parallel_workers: {{ ansible_processor_cores }}
         effective_cache_size: '{{ ansible_memory_mb.real.total * 0.8 }}MB'

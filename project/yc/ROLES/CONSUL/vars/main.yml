@@ -1,3 +1,5 @@
 consul_encrypt: 'DBQD9HVC3UzDJlY+rR0lBTguxg9Tcf2CK+30qztjb7A='
-consul_server_list: '"pg-teach-01:8301","pg-teach-02:8301","pg-teach-03:8301"'
+#consul_server_list: '"pg-teach-01:8301","pg-teach-02:8301","pg-teach-03:8301"'
+
+consul_server_list: '"consul-01:8301","consul-02:8301","consul-03:8301"'
 

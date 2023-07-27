@@ -1,0 +1,9 @@
+{
+      "id": "check_{{ansible_hostname}}_replica",
+      "name": "check_{{ansible_hostname}}_replica",
+      "service_id": "{{ansible_hostname}}-replica",
+      "shell": "/bin/sh",
+      "args": ["/etc/consul.d/scripts/patroni_status.sh", "replica"],
+      "interval": "11s",
+      "timeout": "5s"
+}

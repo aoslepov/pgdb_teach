@@ -1,0 +1,10 @@
+{
+      "id": "check_{{ansible_hostname}}-bouncer",
+      "name": "check_{{ansible_hostname}}-bouncer",
+      "service_id": "{{ansible_hostname}}-bouncer",
+      "shell": "/bin/sh",
+      "args": ["/etc/consul.d/scripts/check_pgbouncer.sh"],
+      "interval": "11s",
+      "timeout": "5s"
+}
+

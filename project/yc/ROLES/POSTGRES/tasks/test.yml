@@ -1,7 +1,8 @@
-- debug: msg="total RAM is {{ ansible_memory_mb.real.total /4 }}MB"
+- name: pgbouncer | generate hash pgbouncer
+  ansible.builtin.shell: PGPASSWORD="{{ postgres_super }}" psql -Atq -U postgres -d postgres -c "SELECT concat('\"', usename, '\" \"', passwd, '\"') FROM pg_shadow" -h {{ ansible_default_ipv4.address }} > /etc/pgbouncer/userlist.txt 
 
-- debug: msg="cpu {{ ansible_processor_cores }}"
-
-
-- debug: msg="workmem {{ ((ansible_memory_mb.real.total*0.8)-(ansible_memory_mb.real.total/4))/100 }}MB"
-
+- name: pgbouncer | set owner
+  ansible.builtin.file:
+    path: /etc/pgbouncer/userlist.txt
+    owner: postgres
+    group: postgres

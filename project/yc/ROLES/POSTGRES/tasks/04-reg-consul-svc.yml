@@ -1,0 +1,78 @@
+- name: create consul dirs
+  ansible.builtin.file:
+    path: "{{item}}"
+    state: directory
+    owner: consul
+    group: consul
+  loop:
+   - "/etc/consul.d/scripts"
+
+
+- name: postgres |  templating consul scripts
+  ansible.builtin.template:
+    src: 'consul_scripts/{{item}}'
+    dest: '/etc/consul.d/scripts/{{item}}'
+    owner: consul
+    group: consul
+    mode: u=rwx,g=rwx,o=r
+  loop:
+    - 'patroni_status.sh'
+    - 'check_pgbouncer.sh'
+
+
+- name: postgres |  templating consul config
+  ansible.builtin.template:
+    src: 'consul_scripts/{{item}}'
+    dest: '/etc/consul.d/scripts/{{item}}'
+    owner: consul
+    group: consul
+  loop:
+    - 'svc_psql.json'
+    - 'svc_psql_replica.json'
+    - 'chk_psql.json'
+    - 'chk_psql_replica.json'
+    - 'chk_pgbouncer.json'
+    - 'svc_pgbouncer.json'
+
+
+- name: check consul_pg_teach_master
+  ansible.builtin.shell: 'consul catalog services -node="{{ansible_hostname}}" | grep -c pg-teach-master || /bin/true'
+  register: consul_pg_teach_master
+
+- block:
+
+   - debug: msg="consul reg pg-teach-master"
+
+   - name: reg pg_teach_master svc
+     ansible.builtin.command: 'curl -d @svc_psql.json -XPUT http://127.0.0.1:8500/v1/agent/service/register'
+     args:
+       chdir: /etc/consul.d/scripts/
+
+   - name: reg pg_teach_master check
+     ansible.builtin.command: 'curl -d @chk_psql.json -XPUT http://127.0.0.1:8500/v1/agent/check/register'
+     args:
+       chdir: /etc/consul.d/scripts/
+
+  when: consul_pg_teach_master.stdout == "0"
+
+
+- name: check consul_pg_teach_replica
+  ansible.builtin.shell: 'consul catalog services -node="{{ansible_hostname}}" | grep -c pg-teach-replica || /bin/true'
+  register: consul_pg_teach_replica
+
+- block:
+
+   - debug: msg="consul reg pg-teach-replica"
+
+   - name: reg consul_pg_teach_replica svc
+     ansible.builtin.command: 'curl -d @svc_psql_replica.json -XPUT http://127.0.0.1:8500/v1/agent/service/register'
+     args:
+       chdir: /etc/consul.d/scripts/
+
+   - name: reg consul_pg_teach_replica check
+     ansible.builtin.command: 'curl -d @chk_psql_replica.json -XPUT http://127.0.0.1:8500/v1/agent/check/register'
+     args:
+       chdir: /etc/consul.d/scripts/
+
+  when: consul_pg_teach_replica.stdout == "0"
+

@@ -1,0 +1,6 @@
+{
+    "id": "{{ansible_hostname}}-bouncer",
+    "name": "pg-teach-bouncer",
+    "tags": ["pgbouncer"],
+    "port": 6432
+}

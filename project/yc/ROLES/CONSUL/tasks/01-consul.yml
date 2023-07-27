@@ -1,7 +1,8 @@
 
 
 - debug: msg="{{ hostvars[item]["ansible_default_ipv4"]["address"] }}     {{ hostvars[item]["ansible_hostname"]}}"
-  with_items:  '{{ groups["pg_teach"] }}'
+  with_items:  '{{ groups["pg_consul"] }}'
+  when: consul_srv_config is defined
 
 
 - name: hosts | add consul internal ips
@@ -11,7 +12,8 @@
     regexp: '{{ hostvars[item]["ansible_default_ipv4"]["address"] }}     {{ hostvars[item]["ansible_hostname"]}}'
     line: '{{ hostvars[item]["ansible_default_ipv4"]["address"] }}     {{ hostvars[item]["ansible_hostname"]}}'
     create: yes
-  with_items:  '{{ groups["pg_teach"] }}'
+  with_items:  '{{ groups["pg_consul"] }}'
+  when: consul_srv_config is defined
 
 
 
@@ -91,4 +93,8 @@
 - name: consul validate config
   ansible.builtin.shell:
     cmd: "consul validate /etc/consul.d"
-  notify: consul_restart
+
+- name: consul start
+  ansible.builtin.service:
+    name: consul
+    state: restarted

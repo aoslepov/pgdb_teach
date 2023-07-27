@@ -1,5 +1,6 @@
-#- import_tasks: 01-postgres.yml
-- import_tasks: 02-patroni.yml
-
+- import_tasks: 01-postgres.yml
+- import_tasks: 02-pgbouncer.yml
+- import_tasks: 03-patroni.yml
+- import_tasks: 04-reg-consul-svc.yml
 
 #- import_tasks: test.yml

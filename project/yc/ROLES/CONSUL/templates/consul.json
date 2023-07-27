@@ -7,6 +7,16 @@
    "data_dir": "/var/consul",
    "log_level": "INFO",
    "client_addr": "0.0.0.0",
-   "bind_addr": "{{ ansible_default_ipv4.address }}"
+   "bind_addr": "0.0.0.0",
+   "enable_local_script_checks": true,
+   "disable_remote_exec": true,
+   "enable_script_checks": true,
+   "translate_wan_addrs": true,
+   "advertise_addr": "{{ ansible_default_ipv4.address }}",
+   "advertise_addr_wan": "{{ ansible_host }}",
+   "ports": {
+   "grpc": 8502
+   }
+
 }
 

@@ -1,0 +1,6 @@
+{
+    "id": "{{ansible_hostname}}-master",
+    "name": "pg-teach-master",
+    "tags": ["postgres_master"],
+    "port": 5432
+}

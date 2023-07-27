@@ -1,1 +1,8 @@
-export ANSIBLE_HOST_KEY_CHECKING=False; ansible-playbook -u aslepov -i /home/aslepov/aslepov_repo/pgdb_teach/project/yc/playbook_start/hosts playbook.yml -e "permit_root_login=yes" -b #--ask-vault-pass
+
+
+#export ANSIBLE_HOST_KEY_CHECKING=False; ansible-playbook -u aslepov -i /home/aslepov/aslepov_repo/pgdb_teach/project/yc/playbook_start/hosts consul-playbook.yml -e "permit_root_login=yes"
+
+
+
+export ANSIBLE_HOST_KEY_CHECKING=False; ansible-playbook -u aslepov -i /home/aslepov/aslepov_repo/pgdb_teach/project/yc/playbook_start/hosts pg-playbook.yml -e "permit_root_login=yes" -b #-vvvvv 
+
