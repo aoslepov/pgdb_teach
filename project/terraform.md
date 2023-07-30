@@ -120,13 +120,26 @@ users:
 terraform validate 
 
 
-* Смотрим составленный план (NB! обновить до финального)
+* Смотрим составленный план (ЗЮХ! обновить до финального)
 terraform plan
 
 ```
 
 * Развёртывание вм согластно плану terraform apply
 
+
+ВМ развёрнуты, получили вывод команд в виде ip хостов
+
+Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+consul_01_ansible_host = "51.250.89.137"
+consul_02_ansible_host = "84.201.175.85"
+consul_03_ansible_host = "51.250.7.230"
+pg_teach_01_ansible_host = "51.250.13.132"
+pg_teach_02_ansible_host = "158.160.37.68"
+pg_teach_03_ansible_host = "51.250.91.170"
 
 
 https://cloud.yandex.ru/docs/tutorials/infrastructure-management/terraform-quickstart
