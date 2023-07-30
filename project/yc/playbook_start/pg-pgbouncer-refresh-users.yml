@@ -1,0 +1,23 @@
+- hosts: pg_teach
+  become: yes
+  become_method: sudo
+  become_user: root
+  vars:
+    postgres_super: 'pgsuper'
+  tasks:
+
+    - name: pgbouncer | generate hash pgbouncer
+      ansible.builtin.shell: PGPASSWORD="{{ postgres_super }}" psql -Atq -U postgres -d postgres -c "SELECT concat('\"', usename, '\" \"', passwd, '\"') FROM pg_shadow" -h {{ ansible_default_ipv4.address }} > /etc/pgbouncer/userlist.txt 
+
+    - name: pgbouncer | set owner
+      ansible.builtin.file:
+        path: /etc/pgbouncer/userlist.txt
+        owner: postgres
+        group: postgres
+
+
+    - name: pgbouncer restart
+      ansible.builtin.service:
+        name: pgbouncer
+        state: reloaded
+

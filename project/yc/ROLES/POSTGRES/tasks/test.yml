@@ -6,3 +6,10 @@
     path: /etc/pgbouncer/userlist.txt
     owner: postgres
     group: postgres
+
+
+- name: pgbouncer restart
+  ansible.builtin.service:
+    name: pgbouncer
+    state: restarted
+
