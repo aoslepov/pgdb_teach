@@ -5,6 +5,7 @@
   when: consul_srv_config is defined
 
 
+# для серверного конфига прописываем в хосты ноды консула если определена переменная consul_srv_config для хоста
 - name: hosts | add consul internal ips
   ansible.builtin.lineinfile:
     state: present
@@ -16,14 +17,13 @@
   when: consul_srv_config is defined
 
 
-
+#создаём группу для консула
 - name: create group consul
   ansible.builtin.group:
     name: consul
     state: present
 
-
-
+#создаём юзера для консула
 - name: create consul users
   ansible.builtin.user:
     name: consul
@@ -34,8 +34,7 @@
     update_password: always
     create_home: no
 
-
-
+#создаём директории для ПО
 - name: create consul dirs
   ansible.builtin.file:
     path: "{{item}}"
@@ -48,10 +47,11 @@
    - "/etc/consul.d/scripts"
 
 
-
+#загружаем консул с зеркала yandex 
 - name: download consul
   ansible.builtin.shell:
     cmd: sudo wget -qO- https://hashicorp-releases.yandexcloud.net/consul/1.16.0/consul_1.16.0_linux_amd64.zip | gunzip - > /usr/local/bin/consul
+  ignore_errors: yes
 
 - name: consul permissions
   ansible.builtin.file:
@@ -60,7 +60,7 @@
     group: consul
     mode: '0774'
 
-
+#копируем клиентский конфиг консула
 - name: consul templating configs
   ansible.builtin.template:
     src: 'consul.json'
@@ -68,7 +68,7 @@
     owner: consul
     group: consul
 
-
+#копируем серверный конфиг консула если определена переменная consul_srv_config для хоста
 - name: consul templating config server
   ansible.builtin.template:
     src: 'consul_server.json'
@@ -77,23 +77,24 @@
     group: consul
   when: consul_srv_config is defined
 
-
+#копируем файл сервиса
 - name: consul templating service
   template:
     src: "consul.service"
     dest: "/etc/systemd/system/consul.service"
 
-
+#перегружаем конфигурацию systemd и ставим режим enabled
 - name: consul enable and start service
   systemd: name="consul" daemon_reload=yes enabled=yes
 
 
 
-
+# валидируем конфиг консула
 - name: consul validate config
   ansible.builtin.shell:
     cmd: "consul validate /etc/consul.d"
 
+# запускаем сервис
 - name: consul start
   ansible.builtin.service:
     name: consul
