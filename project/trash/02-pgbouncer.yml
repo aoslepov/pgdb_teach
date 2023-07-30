@@ -23,6 +23,15 @@
     - 'pgbouncer.ini'
 
 
+
+- name: pgbouncer | set owner
+  ansible.builtin.file:
+    path: /etc/pgbouncer/userlist.txt
+    owner: postgres
+    group: postgres
+
+
+
 - name: pgbouncer restart
   ansible.builtin.service:
     name: pgbouncer

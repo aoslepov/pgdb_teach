@@ -1,4 +1,5 @@
 ---
+# ставим компоненты patroni
 
 - name: patroni | packages
   ansible.builtin.apt:
@@ -10,15 +11,13 @@
      - "python3-dev"
      - "python3-psycopg2"
 
-
 - name: pip psycopg2+patroni
   ansible.builtin.pip:
     name:
       - "psycopg2-binary"
       - "patroni[consul]"
 
-
-
+# создаём директорию для методанных
 - name: patroni dir
   ansible.builtin.file:
     path: "/data/patroni"
@@ -27,24 +26,26 @@
     group: postgres
 
 
-
+#копируем файл сервиса для патрони
 - name: patroni | service
   ansible.builtin.copy:
     src: "patroni.service"
     dest: "/etc/systemd/system/patroni.service"
 
 
-
-
+#копируем шаблон конфига для патрони
 - name: patroni | config
   ansible.builtin.template:
     src: "patroni.yml"
     dest: "/etc/patroni.yml"
 
 
+#перегружаем systemctl и устанавливаем сервис в enabled для патрони
 - name: patroni enable service
   systemd: name="patroni" daemon_reload=yes enabled=yes
 
+#выключаем и деактивируем стандартный сервис postgresql
+#т.к. кластерами теперь управляет patroni
 - name: stop and disable postgresql
   systemd: name="postgresql.service" state=stopped enabled=no
 
