@@ -14,7 +14,6 @@ curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
 https://oauth.yandex.ru/authorize?response_type=token&client_id=1a6990aa636648e9b2ef855fa7bec2fb
 
 * Проверяем установку yc config list
-```
 service-account-key:
   id: aje8h4l7ql6jjukeukhm
   service_account_id: ajelke70oe4djhng98qn
@@ -31,7 +30,6 @@ service-account-key:
 cloud-id: b1gi89kth4ma2ek6b8i3
 folder-id: b1g7jn3kmfd43b53ui4s
 
-```
 
 * cоздаём сервисный аккаунт для api yc
 yc iam service-account create --name yc-terraform
