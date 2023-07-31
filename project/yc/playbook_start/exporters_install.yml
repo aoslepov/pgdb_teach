@@ -1,0 +1,6 @@
+- hosts: pg_app
+  become: yes
+  become_method: sudo
+  become_user: root
+  roles:
+    - ../ROLES/EXPORTERS

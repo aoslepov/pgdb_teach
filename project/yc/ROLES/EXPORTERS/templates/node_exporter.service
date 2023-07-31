@@ -1,0 +1,12 @@
+[Unit]
+Description=Node Exporter
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/{{ node_exporter_pkg }}/node_exporter  --web.listen-address=0.0.0.0:9100  --collector.textfile.directory="/var/lib/node_exporter/textfile_collector"
+Restart=always
+StartLimitBurst=10
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

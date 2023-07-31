@@ -1,0 +1,18 @@
+- name: monitoring | download node exporter
+  ansible.builtin.shell:
+    cmd: wget "https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz" -O node-exporter.tar.gz && tar -xzvf node-exporter.tar.gz --directory=/usr/local/sbin/ && rm node-exporter.tar.gz
+
+- name: node_exporter templating service
+  template:
+    src: "node_exporter.service"
+    dest: "/etc/systemd/system/node_exporter.service"
+
+#перегружаем конфигурацию systemd и ставим режим enabled
+- name: node_exporter enable and start service
+  systemd: name="node_exporter" daemon_reload=yes enabled=yes
+
+# запускаем сервис
+- name: node_exporter start
+  ansible.builtin.service:
+    name: node_exporter
+    state: restarted
