@@ -1,11 +1,13 @@
 клиенты и сервера консула
 ```
-consul-01    158.160.63.220:8301   alive   server  1.16.0  2         dc  default    <all>
-consul-02    158.160.115.116:8301  alive   server  1.16.0  2         dc  default    <all>
-consul-03    158.160.111.110:8301  alive   server  1.16.0  2         dc  default    <all>
-pg-teach-01  10.128.0.12:8301      alive   client  1.16.0  2         dc  default    <default>
-pg-teach-02  10.128.0.23:8301      alive   client  1.16.0  2         dc  default    <default>
-pg-teach-03  10.128.0.10:8301      alive   client  1.16.0  2         dc  default    <default>
+consul members list
+Node         Address              Status  Type    Build   Protocol  DC  Partition  Segment
+consul-01    158.160.56.250:8301  alive   server  1.16.0  2         dc  default    <all>
+consul-02    51.250.77.98:8301    alive   server  1.16.0  2         dc  default    <all>
+consul-03    62.84.118.9:8301     alive   server  1.16.0  2         dc  default    <all>
+pg-teach-01  10.128.0.36:8301     alive   client  1.16.0  2         dc  default    <default>
+pg-teach-02  10.128.0.17:8301     alive   client  1.16.0  2         dc  default    <default>
+pg-teach-03  10.128.0.14:8301     alive   client  1.16.0  2         dc  default    <default>
 ```
 
 
