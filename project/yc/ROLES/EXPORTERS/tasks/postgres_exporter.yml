@@ -1,3 +1,10 @@
+#ставим пакеты unbound и сопутствующие
+- name: install packages
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+     - "unzip"
+
 #создаём директории для ПО
 - name: create dirs
   ansible.builtin.file:
@@ -7,32 +14,11 @@
    - "/usr/local/sbin/postgres_exporter"
 
 
-- name: Unarchive a file that needs to be downloaded (added in 2.0)
+- name: postgres_exporter | get export
   ansible.builtin.unarchive:
-    src: https://example.com/example.zip
+    src: https://github.com/aoslepov/pgdb_teach/blob/main/project/yc/ROLES/EXPORTERS/files/postgres_exporter.tar.gz
     dest: /usr/local/sbin/postgres_exporter
     remote_src: yes
 
 
 
-- name: postgres exporter| copy service archive
-  ansible.builtin.copy:
-    src: 'postgres_exporter.gz'
-    dest: '/usr/local/sbin/postgres_exporter/postgres_exporter.gz'
-
-
-
-- name: node_exporter templating service
-  template:
-    src: "node_exporter.service"
-    dest: "/etc/systemd/system/node_exporter.service"
-
-#перегружаем конфигурацию systemd и ставим режим enabled
-- name: node_exporter enable and start service
-  systemd: name="node_exporter" daemon_reload=yes enabled=yes
-
-# запускаем сервис
-- name: node_exporter start
-  ansible.builtin.service:
-    name: node_exporter
-    state: restarted
