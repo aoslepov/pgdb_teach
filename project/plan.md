@@ -5,7 +5,8 @@
 + настройка патрони
 + настройка pg_bouncer
 + регистрация сервисов для серверов в консуле
-- установка node_exporter,postgresql_exporter
+- установка node_exporter,postgresql_exporter,pgbouncer_exporter
+  описание в журнале
 - разворачивание prometheus/grafana
+  описание в журнале  
 - тестирование высокой нагрузки через yandex tank
-- тестирование переключения на другую ноду
