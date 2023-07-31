@@ -16,7 +16,7 @@
         group: postgres
 
 
-    - name: pgbouncer restart
+    - name: pgbouncer reload
       ansible.builtin.service:
         name: pgbouncer
         state: reloaded

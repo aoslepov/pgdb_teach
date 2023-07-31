@@ -1,16 +1,17 @@
 
 [pg_consul]
-consul-01 ansible_host=51.250.89.137
-consul-02 ansible_host=84.201.175.85
-consul-03 ansible_host=51.250.7.230
+consul-01 ansible_host=158.160.56.250
+consul-02 ansible_host=51.250.77.98
+consul-03 ansible_host=62.84.118.9
+
 [pg_consul:vars]
 consul_srv_config=yes
 
 
 [pg_teach]
-pg-teach-01 ansible_host=51.250.13.132
-pg-teach-02 ansible_host=158.160.37.68
-pg-teach-03 ansible_host=51.250.91.170
+pg-teach-01 ansible_host=158.160.41.204
+pg-teach-02 ansible_host=158.160.37.229
+pg-teach-03 ansible_host=158.160.36.239
 
 [pg_app]
 pg-teach-app ansible_host=158.160.52.149
