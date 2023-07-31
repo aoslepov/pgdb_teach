@@ -1,0 +1,37 @@
+#ставим пакеты unbound и сопутствующие
+- name: install packages
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+     - "unzip"
+
+#создаём директории для ПО
+- name: create dirs
+  ansible.builtin.file:
+    path: "{{item}}"
+    state: directory
+  loop:
+   - "/usr/local/sbin/pg_bouncer_exporter"
+
+
+
+- name: pgbouncer exporter templating service
+  template:
+    src: "pgbouncer_exporter.service"
+    dest: "/etc/systemd/system/pgbouncer_exporter.service"
+
+
+- name: download pgbouncer exporter
+  ansible.builtin.unarchive:
+    src: pgbouncer_exporter.tar.gz
+    dest: /usr/local/sbin/pg_bouncer_exporter/
+ 
+#перегружаем конфигурацию systemd и ставим режим enabled
+- name: pgbouncer_exporter enable and start service
+  systemd: name="pgbouncer_exporter" daemon_reload=yes enabled=yes
+
+# запускаем сервис
+- name: pgbouncer_exporter start
+  ansible.builtin.service:
+    name: pgbouncer_exporter
+    state: restarted

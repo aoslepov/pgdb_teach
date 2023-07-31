@@ -1,0 +1,12 @@
+[Unit]
+Description=Pgbouncer Exporter
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/pg_bouncer_exporter/pgbouncer_exporter  --web.listen-address=0.0.0.0:9102 --pgBouncer.connectionString="{{ pgbouncer_login_string }}"
+Restart=always
+StartLimitBurst=10
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
