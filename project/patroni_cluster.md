@@ -155,13 +155,13 @@ psql -Atq -U postgres -d postgres -c "SELECT concat('\"', usename, '\" \"', pass
 -- переключаемся назад на pg-teach-01 и проверяем
 -- подключение через pgbouncer к мастеру и реплике
 
-patronictl -c /etc/patroni.yml list
+root@pg-teach-01:~# patronictl -c /etc/patroni.yml list
 + Cluster: pgteachcluster --+---------+-----------+----+-----------+
 | Member      | Host        | Role    | State     | TL | Lag in MB |
 +-------------+-------------+---------+-----------+----+-----------+
-| pg-teach-01 | 10.128.0.12 | Leader  | running   |  3 |           |
-| pg-teach-02 | 10.128.0.23 | Replica | streaming |  3 |         0 |
-| pg-teach-03 | 10.128.0.10 | Replica | streaming |  3 |         0 |
+| pg-teach-01 | 10.128.0.36 | Replica | streaming |  2 |         0 |
+| pg-teach-02 | 10.128.0.17 | Leader  | running   |  2 |           |
+| pg-teach-03 | 10.128.0.14 | Replica | streaming |  2 |         0 |
 +-------------+-------------+---------+-----------+----+-----------+
 
 root@pg-teach-01:/etc/pgbouncer# psql -h pg-teach-master.service.dc.consul -p 6432 -U postgres -d postgres
