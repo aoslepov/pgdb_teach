@@ -1,0 +1,13 @@
+[Unit]
+Description=Postgres Exporter
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/postgresql_exporter/postgres_exporter  --web.listen-address=0.0.0.0:9101
+Environment=DATA_SOURCE_NAME="{{ postgres_login_string }}"
+Restart=always
+StartLimitBurst=10
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
