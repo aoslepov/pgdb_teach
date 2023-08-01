@@ -52,10 +52,10 @@
    - "/etc/prometheus/rules.d"
    - "/etc/prometheus/files_sd"
 
-#- name: node exporter download
-#  ansible.builtin.shell:
-#    cmd: wget "https://github.com/prometheus/prometheus/releases/download/v2.46.0/prometheus-2.46.0.linux-amd64.tar.gz" -O prometheus.tar.gz && tar -xzvf prometheus.tar.gz --directory=/usr/local/sbin/ && rm prometheus.tar.gz
-#    chdir: /usr/local/sbin/
+- name: prometheus download
+  ansible.builtin.shell:
+    cmd: wget "https://github.com/prometheus/prometheus/releases/download/v2.46.0/prometheus-2.46.0.linux-amd64.tar.gz" -O prometheus.tar.gz && tar -xzvf prometheus.tar.gz --directory=/usr/local/sbin/ && rm prometheus.tar.gz
+    chdir: /usr/local/sbin/
 
 - name: prometheus add path
   copy:
