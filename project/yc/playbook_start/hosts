@@ -14,5 +14,5 @@ pg-teach-02 ansible_host=158.160.37.229
 pg-teach-03 ansible_host=158.160.36.239
 
 [pg_app]
-pg-teach-app ansible_host=158.160.46.173
+pg-teach-app ansible_host=158.160.111.201
 
