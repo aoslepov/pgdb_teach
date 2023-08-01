@@ -27,3 +27,26 @@ scrape_configs:
 
     static_configs:
       - targets: ["localhost:9090"]
+
+  - job_name: 'node'
+    static_configs:
+      - targets:
+        - 'pg-teach-01:9100'
+        - 'pg-teach-02:9100'
+        - 'pg-teach-03:9100'
+
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets:
+        - 'pg-teach-01:9101'
+        - 'pg-teach-02:9101'
+        - 'pg-teach-03:9101'
+
+  - job_name: 'pgbouncer'
+    static_configs:
+      - targets:
+        - 'pg-teach-01:9102'
+        - 'pg-teach-02:9102'
+        - 'pg-teach-03:9102'
+

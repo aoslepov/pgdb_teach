@@ -16,7 +16,7 @@
 - name: nginx enable
   systemd: name="nginx" daemon_reload=yes enabled=yes
 
-- name: pgbouncer_exporter start
+- name: nginx start
   ansible.builtin.service:
     name: nginx
     state: restarted
@@ -52,8 +52,37 @@
    - "/etc/prometheus/rules.d"
    - "/etc/prometheus/files_sd"
 
+#- name: node exporter download
+#  ansible.builtin.shell:
+#    cmd: wget "https://github.com/prometheus/prometheus/releases/download/v2.46.0/prometheus-2.46.0.linux-amd64.tar.gz" -O prometheus.tar.gz && tar -xzvf prometheus.tar.gz --directory=/usr/local/sbin/ && rm prometheus.tar.gz
+#    chdir: /usr/local/sbin/
 
-- name: node exporter download
-  ansible.builtin.shell:
-    cmd: wget "https://github.com/prometheus/prometheus/releases/download/v2.46.0/prometheus-2.46.0.linux-amd64.tar.gz" -O prometheus.tar.gz && tar -xzvf prometheus.tar.gz --directory=/usr/local/sbin/ && rm prometheus.tar.gz
-    chdir: /usr/local/sbin/
+- name: prometheus add path
+  copy:
+    dest: /etc/profile.d/prometheus-path.sh
+    content: 'PATH=$PATH:/usr/local/sbin/prometheus-2.46.0.linux-amd64'
+
+- name: prometheus copy configs
+  ansible.builtin.copy:
+    src: "prometheus/{{item}}"
+    dest: "/etc/prometheus/{{item}}"
+    owner: prometheus
+    group: prometheus
+  loop:
+   - "prometheus.yml"
+   - "console_libraries/."
+   - "consoles/."
+
+- name: prometheus copy service
+  copy:
+    src: "prometheus/prometheus.service"
+    dest: "/etc/systemd/system/prometheus.service"
+
+- name: prometheus enable
+  systemd: name="prometheus" daemon_reload=yes enabled=yes
+
+- name: prometheus start
+  ansible.builtin.service:
+    name: prometheus
+    state: restarted
+
