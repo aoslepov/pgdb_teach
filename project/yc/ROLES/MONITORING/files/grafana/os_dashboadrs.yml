@@ -1,0 +1,11 @@
+# # config file version
+apiVersion: 1
+
+providers:
+ - name: 'os'
+   orgId: 1
+   folder: 'os'
+   folderUid: '3357fa00-311d-11ee-8fe6-17f6ebe19049'
+   type: file
+   options:
+     path: /var/lib/grafana/dashboards/os

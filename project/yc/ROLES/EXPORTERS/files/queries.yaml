@@ -1,0 +1,24 @@
+pg_stat_database:
+  query: "select datid,  datname, numbackends, xact_commit, xact_rollback, blks_read, blks_hit, tup_returned, tup_fetched, tup_inserted, tup_updated, tup_deleted, conflicts, temp_files, temp_bytes, deadlocks, checksum_failures, checksum_last_failure, blk_read_time, blk_write_time, session_time, active_time, idle_in_transaction_time, sessions, sessions_abandoned, sessions_fatal, sessions_killed from pg_stat_database"
+  metrics:
+    - datname:
+        usage: "LABEL"
+    - xact_commit:
+        usage: "COUNTER"
+    - blks_read:
+        usage: "COUNTER"
+    - blks_hit:
+        usage: "COUNTER"
+    - tup_returned:
+        usage: "COUNTER"
+    - tup_fetched:
+        usage: "COUNTER"
+    - tup_inserted:
+        usage: "COUNTER"
+    - tup_updated:
+        usage: "COUNTER"
+    - tup_deleted:
+        usage: "COUNTER"
+    - temp_bytes:
+        usage: "COUNTER"
+

@@ -16,6 +16,21 @@
     src: "postgres_exporter.service"
     dest: "/etc/systemd/system/postgres_exporter.service"
 
+
+- name: postgres_exporter custom queries
+  copy:
+    src: "queries.yaml"
+    dest: "/usr/local/sbin/postgresql_exporter/queries.yaml"
+
+- name: postgres_exporter sql grants for exporter
+  copy:
+    src: "grant_sql_exporter.sql"
+    dest: "/usr/local/sbin/postgresql_exporter/grant_sql_exporter.sql"
+
+- name: node exporter download
+  ansible.builtin.shell:
+    cmd: PGPASSWORD="{{postgres_super}}" psql -Upostgres -h 127.0.0.1 < /usr/local/sbin/postgresql_exporter/grant_sql_exporter.sql
+
 - name: download postgres exporter
   ansible.builtin.unarchive:
     src: postgres_exporter.tar.gz

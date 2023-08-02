@@ -11,7 +11,7 @@ deleteDatasources:
 datasources:
   # <string, required> Sets the name you use to refer to
   # the data source in panels and queries.
-  - name: prometheus
+  - name: DS_PROMETHEUS
     # <string, required> Sets the data source type.
     type: prometheus
     # <string, required> Sets the access mode, either
