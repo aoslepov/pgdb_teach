@@ -29,7 +29,7 @@
 
 - name: node exporter download
   ansible.builtin.shell:
-    cmd: PGPASSWORD="{{postgres_super}}" psql -Upostgres -h 127.0.0.1 < /usr/local/sbin/postgresql_exporter/grant_sql_exporter.sql
+    cmd: PGPASSWORD="{{postgres_super}}" psql -Upostgres -h pg-teach-master.service.consul < /usr/local/sbin/postgresql_exporter/grant_sql_exporter.sql
 
 - name: download postgres exporter
   ansible.builtin.unarchive:

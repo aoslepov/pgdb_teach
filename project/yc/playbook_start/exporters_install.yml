@@ -1,4 +1,4 @@
-- hosts: pg_app
+- hosts: pg_teach
   become: yes
   become_method: sudo
   become_user: root

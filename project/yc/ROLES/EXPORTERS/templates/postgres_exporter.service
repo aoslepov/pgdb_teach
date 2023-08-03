@@ -3,8 +3,8 @@ Description=Postgres Exporter
 
 [Service]
 Type=simple
-ExecStart=/usr/local/sbin/postgresql_exporter/postgres_exporter  --web.listen-address=0.0.0.0:9101 --extend.query-path=/usr/local/sbin/postgresql_exporter/queries.yaml
-Environment=DATA_SOURCE_NAME="{{ postgres_login_string }}"
+ExecStart=/usr/local/sbin/postgresql_exporter/postgres_exporter  --web.listen-address=0.0.0.0:9101 --collector.stat_statements --extend.query-path=/usr/local/sbin/postgresql_exporter/queries.yaml
+Environment=DATA_SOURCE_NAME="{{ exporter_login_string }}"
 Restart=always
 StartLimitBurst=10
 RestartSec=5

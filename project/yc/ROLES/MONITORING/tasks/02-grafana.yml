@@ -4,7 +4,6 @@
     pkg:
      - "apt-transport-https"
      - "software-properties-common"
-#     - "libfontconfig1"
 
 
 - name: grafana | download deb

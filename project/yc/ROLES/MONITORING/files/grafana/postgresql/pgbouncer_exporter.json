@@ -19,7 +19,7 @@
   "fiscalYearStartMonth": 0,
   "gnetId": 9760,
   "graphTooltip": 0,
-  "id": 10,
+  "id": 5,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -77,16 +77,18 @@
       "links": [],
       "maxDataPoints": 100,
       "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ],
-          "fields": "/^sum \\(pgbouncer_pools_client_active_connections\\{database=~\"\\(pgbouncer\\|postgres\\)\",instance=~\"pg\\-teach\\-01:9102\"\\}\\)$/",
+          "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "textMode": "auto"
       },
       "pluginVersion": "10.0.3",
       "repeatDirection": "h",
@@ -97,16 +99,16 @@
             "uid": "my_unique_uid"
           },
           "editorMode": "code",
-          "expr": "sum (pgbouncer_pools_client_active_connections{database=~\"$db\",instance=~\"$hostname\"})",
+          "expr": "sum (pgbouncer_pools_client_active_connections{instance=~\"$hostname\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Client active connections $db",
+      "title": "Client active connections ",
       "transparent": true,
-      "type": "gauge"
+      "type": "stat"
     },
     {
       "datasource": {
@@ -158,16 +160,18 @@
       "links": [],
       "maxDataPoints": 100,
       "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "last"
           ],
-          "fields": "/^sum \\( rate\\(pgbouncer_stats_queries_pooled_total\\{database=~\"\\(pgbouncer\\|postgres\\)\",instance=~\"pg\\-teach\\-01:9102\"\\}\\[1m\\]\\) \\) $/",
+          "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "textMode": "auto"
       },
       "pluginVersion": "10.0.3",
       "repeatDirection": "h",
@@ -178,16 +182,16 @@
             "uid": "my_unique_uid"
           },
           "editorMode": "code",
-          "expr": "sum ( rate(pgbouncer_stats_queries_pooled_total{database=~\"$db\",instance=~\"$hostname\"}[1m]) ) ",
+          "expr": "sum ( rate(pgbouncer_stats_queries_pooled_total{instance=~\"$hostname\"}[1m]) )  ",
           "format": "time_series",
           "intervalFactor": 1,
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Stats queries total $db",
+      "title": "Stats queries total ",
       "transparent": true,
-      "type": "gauge"
+      "type": "stat"
     },
     {
       "aliasColors": {},
@@ -245,10 +249,10 @@
             "uid": "my_unique_uid"
           },
           "editorMode": "code",
-          "expr": "sum by (database,hostname) (pgbouncer_databases_pool_size{database=~\"$db\",instance=~\"$hostname\"})",
+          "expr": "sum by (instance) (pgbouncer_databases_pool_size{instance=~\"$hostname\"})",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{database}},{{hostname}}",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -294,6 +298,7 @@
         "type": "prometheus",
         "uid": "my_unique_uid"
       },
+      "description": "",
       "fill": 2,
       "fillGradient": 0,
       "gridPos": {
@@ -341,10 +346,10 @@
             "uid": "my_unique_uid"
           },
           "editorMode": "code",
-          "expr": "sum by (database,hostname) (pgbouncer_databases_reserve_pool{database=~\"$db\",instance=~\"$hostname\"})",
+          "expr": "sum by (instance) (pgbouncer_databases_reserve_pool{instance=~\"$hostname\"}) ",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{database}},{{hostname}}",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -434,10 +439,10 @@
             "uid": "my_unique_uid"
           },
           "editorMode": "code",
-          "expr": "sort_desc( sum by (database) ( rate(pgbouncer_stats_queries_duration_seconds_total{database=~\"$db\",instance=~\"$hostname\"}[1m]) ) )",
+          "expr": "sort_desc( sum by (instance) ( rate(pgbouncer_stats_queries_duration_seconds_total{instance=~\"$hostname\"}[1m]) ) ) ",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{database}}",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -533,11 +538,11 @@
             "uid": "my_unique_uid"
           },
           "editorMode": "code",
-          "expr": "sort_desc( sum by (database, instance) ( rate(pgbouncer_stats_queries_duration_seconds_total{database=~\"$db\",instance=~\"$hostname\"}[1m]) ) )",
+          "expr": "sort_desc( sum by (instance) ( rate(pgbouncer_stats_queries_duration_seconds_total{instance=~\"$hostname\"}[1m]) ) )",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
-          "legendFormat": "{{ database }}, {{ hostname }}: Stats queries duration microseconds",
+          "legendFormat": "{{ instance }}: Stats queries duration microseconds",
           "range": true,
           "refId": "B"
         },
@@ -547,17 +552,17 @@
             "uid": "my_unique_uid"
           },
           "editorMode": "code",
-          "expr": "sort_desc( sum by (database, instance) ( rate(pgbouncer_stats_client_wait_seconds_total{database=~\"$db\",instance=~\"$hostname\"}[1m]) ) ) ",
+          "expr": "sort_desc( sum by (instance) ( rate(pgbouncer_stats_client_wait_seconds_total{instance=~\"$hostname\"}[1m]) ) )  ",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }}, {{hostname}}: Stats waiting duration microseconds",
+          "legendFormat": "{{instance}}: Stats waiting duration microseconds",
           "range": true,
           "refId": "C"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Stats queries $db",
+      "title": "Stats queries",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -642,10 +647,10 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "sort_desc( sum by (database, instance) ( rate(pgbouncer_stats_queries_duration_seconds_total{database=~\"$db\",instance=~\"$hostname\"}[1m]) ) )  ",
+          "expr": "sort_desc( sum by (instance) ( rate(pgbouncer_stats_queries_duration_seconds_total{instance=~\"$hostname\"}[1m]) ) )  ",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }}, {{ hostname }}: Stats transactions duration microseconds",
+          "legendFormat": "{{ instance }}: Stats transactions duration microseconds",
           "range": true,
           "refId": "D"
         },
@@ -654,17 +659,17 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "sort_desc( sum by (database, instance) ( rate(pgbouncer_stats_sql_transactions_pooled_total{database=~\"$db\",instance=~\"$hostname\"}[1m]) ) )",
+          "expr": "sort_desc( sum by (instance) ( rate(pgbouncer_stats_sql_transactions_pooled_total{instance=~\"$hostname\"}[1m]) ) ) ",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }}, {{ hostname }}: Stats transactions total",
+          "legendFormat": "{{ instance }}: Stats transactions total",
           "range": true,
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Transactions stats $db",
+      "title": "Transactions stats",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -703,6 +708,7 @@
         "type": "prometheus",
         "uid": "$datasource"
       },
+      "description": " ",
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
@@ -747,11 +753,11 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "pgbouncer_pools_client_active_connections{database=~\"$db\", instance=~\"$hostname\"}",
+          "expr": "sum by (instance)(pgbouncer_pools_client_active_connections{instance=~\"$hostname\"})",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
-          "legendFormat": "{{ database }},{{hostname}}: Client active connections ",
+          "legendFormat": "{{instance}}: Client active connections ",
           "refId": "A"
         },
         {
@@ -759,10 +765,11 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "pgbouncer_stats_client_wait_seconds_total{database=~\"$db\", instance=~\"$hostname\"}",
+          "expr": "sum by (instance) (pgbouncer_stats_client_wait_seconds_total{instance=~\"$hostname\"})",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }},{{hostname}}: Client waiting connections",
+          "legendFormat": "{{instance}}: Client waiting connections",
           "range": true,
           "refId": "C"
         },
@@ -771,10 +778,10 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "pgbouncer_pools_server_active_connections{database=~\"$db\", instance=~\"$hostname\"}",
+          "expr": "sum by (instance) (pgbouncer_pools_server_active_connections{database=~\"$db\", instance=~\"$hostname\"})",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }},{{hostname}}: Server active connections",
+          "legendFormat": "{{instance}}: Server active connections",
           "range": true,
           "refId": "B"
         },
@@ -783,10 +790,10 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "pgbouncer_pools_server_idle_connections{database=~\"$db\", instance=~\"$hostname\"}",
+          "expr": "sum by (instance) (pgbouncer_pools_server_idle_connections{instance=~\"$hostname\"})",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }},{{hostname}}: Server idle connections",
+          "legendFormat": "{{instance}}: Server idle connections",
           "range": true,
           "refId": "D"
         },
@@ -795,10 +802,10 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "pgbouncer_pools_server_used_connections{database=~\"$db\", instance=~\"$hostname\"}",
+          "expr": "sum by (instance) (pgbouncer_pools_server_used_connections{instance=~\"$hostname\"})",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }},{{hostname}}: Server used connections",
+          "legendFormat": "{{instance}}: Server used connections",
           "range": true,
           "refId": "E"
         },
@@ -807,10 +814,10 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "pgbouncer_pools_server_testing_connections{database=~\"$db\", instance=~\"$hostname\"}",
+          "expr": "sum by (instance) (pgbouncer_pools_server_testing_connections{instance=~\"$hostname\"})",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }},{{hostname}}: Server testing connections",
+          "legendFormat": "{{instance}}: Server testing connections",
           "range": true,
           "refId": "F"
         },
@@ -818,20 +825,24 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "pgbouncer_pools_server_login_connections{database=~\"$db\", hostname=~\"$hostname\"}",
+          "editorMode": "code",
+          "expr": "sum by (instance) (pgbouncer_pools_server_login_connections{instance=~\"$hostname\"})",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }},{{hostname}}: Server login connections",
+          "legendFormat": "{{instance}}: Server login connections",
+          "range": true,
           "refId": "G"
         },
         {
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "pgbouncer_databases_database_current_connections{database=~\"$db\", hostname=~\"$hostname\"}",
+          "editorMode": "code",
+          "expr": "sum by (instance) (pgbouncer_databases_database_current_connections{instance=~\"$hostname\"})",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }},{{hostname}}: Database current connections",
+          "legendFormat": "{{instance}}: Database current connections",
+          "range": true,
           "refId": "H"
         }
       ],
@@ -926,11 +937,11 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "sort_desc( sum by (database,instance) ( rate(pgbouncer_stats_received_bytes_total{database=~\"$db\",instance=~\"$hostname\"}[1m])*8 ) )",
+          "expr": "sort_desc( sum by (instance) ( rate(pgbouncer_stats_received_bytes_total{instance=~\"$hostname\"}[1m])*8 ) ) ",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
-          "legendFormat": "{{ database }}, {{ hostname }}: Stats received bytes total",
+          "legendFormat": "{{ instance }}: Stats received bytes total",
           "range": true,
           "refId": "B"
         },
@@ -939,17 +950,17 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "sort_desc( sum by (database,instance) ( rate(pgbouncer_stats_sent_bytes_total{database=~\"$db\",instance=~\"$hostname\"}[1m])*8 ) )",
+          "expr": "sort_desc( sum by (instance) ( rate(pgbouncer_stats_sent_bytes_total{instance=~\"$hostname\"}[1m])*8 ) )",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ database }}, {{ hostname }}: Stats sent bytes total",
+          "legendFormat": "{{ instance }}: Stats sent bytes total",
           "range": true,
           "refId": "C"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Total of incoming / outgoing bytes $db",
+      "title": "Total of incoming / outgoing bytes ",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -978,7 +989,7 @@
       }
     }
   ],
-  "refresh": false,
+  "refresh": "",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [],
@@ -1041,40 +1052,6 @@
         "current": {
           "selected": true,
           "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "my_unique_uid"
-        },
-        "definition": "label_values(pgbouncer_databases_current_connections,database)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Db",
-        "multi": true,
-        "name": "db",
-        "options": [],
-        "query": {
-          "query": "label_values(pgbouncer_databases_current_connections,database)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 1,
-        "regex": ".*",
-        "skipUrlSync": false,
-        "sort": 1,
-        "tagValuesQuery": "",
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "current": {
-          "selected": true,
-          "text": [
             "pg-teach-01:9102"
           ],
           "value": [
@@ -1107,7 +1084,7 @@
       },
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "DS_PROMETHEUS",
           "value": "DS_PROMETHEUS"
         },
@@ -1127,7 +1104,7 @@
     ]
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
