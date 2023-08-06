@@ -1,0 +1,60 @@
+- hosts: teach_mon
+  become: yes
+  become_method: sudo
+  become_user: root
+  vars:
+    postgres_super: 'pgsuper'
+    postgres_host: 127.0.0.1
+  tasks:
+
+
+    - name: postgres | add source
+      ansible.builtin.shell:
+        cmd: sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+    - name: postgres | add source
+      ansible.builtin.shell:
+        cmd: wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+
+    - name: postgres | install postgresql-contrib
+      ansible.builtin.apt:
+        update_cache: yes
+        pkg:
+          - "postgresql-contrib"
+
+
+    - name: psycopg | packages
+      ansible.builtin.apt:
+        update_cache: yes
+        pkg:
+         - "python3-pip"
+         - "libpq-dev"
+         - "gcc"
+         - "python3-dev"
+         - "python3-psycopg2"
+
+    - name: pip psycopg2
+      ansible.builtin.pip:
+        name:
+          - "psycopg2-binary"
+
+
+    - community.postgresql.postgresql_db:
+        name: testing
+        login_host: 127.0.0.1
+        login_user: postgres
+        login_password: "{{postgres_super}}"
+        state: present
+#      become: true
+#      become_user: postgres
+#login_user: postgres
+#login_password: "{{postgres_super}}"
+#login_host: "{{postgres_host}}"
+
+
+
+
+
+
+
+
