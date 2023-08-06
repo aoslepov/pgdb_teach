@@ -4,7 +4,7 @@
   become_user: root
   vars:
     postgres_super: 'pgsuper'
-    postgres_host: 127.0.0.1
+    postgres_host: pg-teach-master.service.dc.consul
   tasks:
 
 
@@ -41,15 +41,20 @@
 
     - community.postgresql.postgresql_db:
         name: testing
-        login_host: 127.0.0.1
+        login_host: pg-teach-master.service.dc.consul
         login_user: postgres
         login_password: "{{postgres_super}}"
         state: present
-#      become: true
-#      become_user: postgres
-#login_user: postgres
-#login_password: "{{postgres_super}}"
-#login_host: "{{postgres_host}}"
+
+
+
+    - community.postgresql.postgresql_ext:
+        name: pg_stat_statements
+        db: testing
+        login_host: pg-teach-master.service.dc.consul
+        login_user: postgres
+        login_password: "{{postgres_super}}"
+        state: present
 
 
 

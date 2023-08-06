@@ -1,3 +1,26 @@
+
+
+- debug:
+    msg: "{{ hostvars[item].ansible_host }}    {{ hostvars[item].inventory_hostname }}"
+  with_items:  '{{ groups["pg_teach"] }}'
+
+
+
+
+
+
+# для серверного конфига прописываем в хосты ноды консула если определена переменная consul_srv_config для хоста
+- name: hosts | add consul internal ips
+  ansible.builtin.lineinfile:
+    state: present
+    dest: /etc/hosts
+    regexp: '{{ hostvars[item].ansible_host }}    {{ hostvars[item].inventory_hostname }}'
+    line: '{{ hostvars[item].ansible_host }}    {{ hostvars[item].inventory_hostname }}'
+    create: yes
+  with_items:  '{{ groups["pg_teach"] }}'
+
+
+
 - name: prometheus install packages
   ansible.builtin.apt:
     update_cache: yes

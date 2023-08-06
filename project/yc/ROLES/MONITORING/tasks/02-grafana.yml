@@ -59,7 +59,7 @@
     group: grafana
   loop:
    - "os/node-exporter.json"
-   - "postgresql/postgres_exporters.json"
+   - "postgresql/pg-database.json"
    - "postgresql/pgbouncer_exporter.json"
    - "postgresql/pg-full.json"
 
