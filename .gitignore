@@ -1,6 +1,6 @@
-project/yc/.terraform/*
-project/trash/*
-project/yc/terraform.tfstate*
-project/yc/.terraform.lock.hcl
+/project/yc/.terraform/*
+/project/trash/*
+/project/yc/terraform.tfstate*
+/project/yc/.terraform.lock.hcl
 toprohect.sh
 
