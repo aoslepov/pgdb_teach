@@ -24,7 +24,6 @@
 #шаблоны для сервисов консула и скриптов проверок
 #svc_psql.json - сервис pg-teach-master, конфиг скрипта проверки chk_psql.json
 #svc_psql_replica.json - сервис pg-teach-replica, конфиг скрипта проверки chk_psql_replica.json
-#svc_pgbouncer.json - сервис pg-teach-replica, конфиг скрипта проверки chk_pgbouncer.json ??? БАУНСЕР
 
 - name: postgres |  templating consul config
   ansible.builtin.template:

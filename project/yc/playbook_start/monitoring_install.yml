@@ -3,5 +3,5 @@
   become_method: sudo
   become_user: root
   roles:
-#    - ../ROLES/CONSUL
+    - ../ROLES/CONSUL
     - ../ROLES/MONITORING
