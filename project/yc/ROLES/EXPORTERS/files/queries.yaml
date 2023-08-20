@@ -22,3 +22,10 @@ pg_stat_database:
     - temp_bytes:
         usage: "COUNTER"
 
+pg_postmaster:
+    query: select pg_postmaster_start_time as start_time_seconds from pg_postmaster_start_time();
+    master: true
+    metrics:
+        - start_time_seconds:
+            usage: "GAUGE"
+            description: "time at which postmaster started"
